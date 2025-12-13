@@ -1,7 +1,7 @@
 #ifndef _ZENO_SPEC_SRC_IO_H
 #define _ZENO_SPEC_SRC_IO_H
 
-#include "src/defs.h"
+#include "src/base.h"
 
 #include <stdarg.h>
 
@@ -70,5 +70,14 @@ SystemIoError Writer_print(Writer* writer, char const* format, ...);
 
 /** Write formatted string with va_list. */
 SystemIoError Writer_vprint(Writer* writer, char const* format, va_list args);
+
+/** Write string. */
+SystemIoError Writer_write_str(Writer* writer, StringRef string);
+
+/** Write nul-terminated byte string. */
+SystemIoError Writer_write_zstr(Writer* writer, char const* string);
+
+/** Write byte string. */
+SystemIoError Writer_write_bstr(Writer* writer, ByteStringRef string);
 
 #endif

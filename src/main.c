@@ -1,6 +1,8 @@
 #include "src/io.h"
 #include "src/lex.h"
+#include "src/parse.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -22,64 +24,236 @@ static void error(char const* format, ...) {
     va_end(args);
 }
 
-static int print_tokens(ByteStringRef source) {
-    int res = 0;
+static void print_token_kind_description(Writer* writer, TokenKind kind) {
+    switch (kind) {
+    case TokenKind_EndOfFile:
+        Writer_print(writer, "end of file");
+        break;
+    case TokenKind_Identifier:
+        Writer_print(writer, "identifier");
+        break;
+    case TokenKind_IntLiteral:
+        Writer_print(writer, "integer literal");
+        break;
+    #define CASE(name, str) case TokenKind_##name:
+    SYMBOL_KIND_LIST(CASE)
+        Writer_print(writer, "symbol `%s`", TokenKind_spelling(kind));
+        break;
+    KEYWORD_KIND_LIST(CASE)
+        Writer_print(writer, "keyword `%s`", TokenKind_spelling(kind));
+        break;
+    #undef CASE
+    }
+}
+
+static void print_lex_error_description(Writer* writer, LexError const* error) {
+    switch (error->kind) {
+    case LexErrorKind_BadEncoding:
+        Writer_print(writer, "invalid UTF-8 encoding");
+        break;
+    case LexErrorKind_LineLimitExceeded:
+        Writer_print(writer, "too many lines in source file");
+        break;
+    case LexErrorKind_ColumnLimitExceeded:
+        Writer_print(writer, "too many characters in line");
+        break;
+    case LexErrorKind_CharacterLimitExceeded:
+        Writer_print(writer, "too many characters in file");
+        break;
+    case LexErrorKind_UnclosedBlockComment:
+        Writer_print(writer, "unclosed block comment");
+        break;
+    case LexErrorKind_DecimalLeadingZero:
+        Writer_print(writer, "decimal literal cannot have leading zero");
+        break;
+    case LexErrorKind_BadIntLiteral:
+        Writer_print(writer, "invalid integer literal");
+        break;
+    case LexErrorKind_UnexpectedCharacter:
+        Writer_print(
+            writer, "unexpected character U+%04X", error->value.character
+        );
+    }
+}
+
+static void print_lex_error(
+    Writer* writer, ByteStringRef path, LexError const* error
+) {
+    Writer_write_bstr(writer, path);
+    Writer_print(writer, ":%u:%u: error: ", error->pos.line, error->pos.column);
+    print_lex_error_description(writer, error);
+    Writer_print(writer, "\n");
+}
+
+static void print_parse_error(
+    Writer* writer, ByteStringRef path, ParseError const* error
+) {
+    Writer_write_bstr(writer, path);
+    Writer_print(
+        writer,
+        ":%u:%u: error: unexpected ",
+        error->token_pos.line,
+        error->token_pos.column
+    );
+    print_token_kind_description(writer, error->token_kind);
+    Writer_print(writer, "\n");
+}
+
+static void print_yacc_error(Writer* writer, ByteStringRef message) {
+    Writer_print(writer, "zeno-spec: error: yacc: ");
+    Writer_write_bstr(writer, message);
+    Writer_print(writer, "\n");
+}
+
+typedef enum DriverAction {
+    DriverAction_Unknown,
+    DriverAction_DumpLex,
+    DriverAction_CheckLex,
+    DriverAction_CheckLexInvalid,
+    DriverAction_DumpSyntax,
+    DriverAction_CheckSyntax,
+    DriverAction_CheckSyntaxInvalid
+} DriverAction;
+
+static int lex_action(
+    ByteStringRef path, ByteStringRef source, DriverAction action
+) {
+    int lex_okay = true;
     Lexer lexer;
-    LexResult token_or_error;
+    LexResult lex_result;
+
     Lexer_init(&lexer, source, NULL);
 
-    while (Lexer_next(&lexer, &token_or_error)) {
-        if (token_or_error.is_token) {
-            Token token;
-            token = token_or_error.u.token;
-            Writer_print(Writer_stdout, "%s", TokenKind_name(token.kind));
-            if (token.kind == TokenKind_IntLiteral) {
-                Writer_print(Writer_stdout, " value=%u", token.value.integer);
+    while (Lexer_next(&lexer, &lex_result)) {
+        if (lex_result.is_token) {
+            if (action == DriverAction_DumpLex) {
+                Token_dump(&lex_result.u.token, Writer_stdout);
             }
-            Writer_print(
-                Writer_stdout, " position=%u:%u\n", token.line, token.column
-            );
         } else {
-            LexError error;
-            error = token_or_error.u.error;
-            Writer_print(
-                Writer_stdout, "%s", LexErrorKind_name(error.kind)
-            );
-            if (error.kind == LexErrorKind_UnexpectedCharacter) {
-                Writer_print(
-                    Writer_stdout, " value=0x%04X", error.value.character
-                );
+            if (action != DriverAction_CheckLexInvalid) {
+                print_lex_error(Writer_stderr, path, &lex_result.u.error);
             }
-            Writer_print(
-                Writer_stdout, " position=%u:%u\n", error.line, error.column
-            );
-            res = 1;
+            lex_okay = false;
+            break;
         }
     }
 
     Lexer_destroy(&lexer);
+
+    switch (action) {
+    case DriverAction_DumpLex:
+        return lex_okay ? 0 : 1;
+    case DriverAction_CheckLex:
+        return lex_okay ? 0 : 1;
+    case DriverAction_CheckLexInvalid:
+        return lex_okay ? 1 : 0;
+    default:
+        assert(0 && "unreachable");
+    }
+}
+
+static int syntax_action(
+    ByteStringRef path, ByteStringRef source, DriverAction action
+) {
+    int res = 0;
+    AstContext context;
+    Lexer lexer;
+    ParseResult parse_result;
+
+    AstContext_init(&context);
+    Lexer_init(&lexer, source, NULL);
+
+    parse(&parse_result, &context, &lexer);
+
+    switch (parse_result.kind) {
+    case ParseResultKind_Success:
+        if (action == DriverAction_DumpSyntax) {
+            Item_dump(parse_result.u.syntax, Writer_stdout);
+        } else if (action == DriverAction_CheckSyntaxInvalid) {
+            res = 1;
+        }
+        break;
+    case ParseResultKind_LexError:
+        if (action != DriverAction_CheckSyntaxInvalid) {
+            print_lex_error(Writer_stderr, path, &parse_result.u.lex_error);
+            res = 1;
+        }
+        break;
+    case ParseResultKind_ParseError:
+        if (action != DriverAction_CheckSyntaxInvalid) {
+            print_parse_error(Writer_stderr, path, &parse_result.u.parse_error);
+            res = 1;
+        }
+        break;
+    case ParseResultKind_YaccError:
+        print_yacc_error(Writer_stderr, parse_result.u.yacc_error);
+        res = 1;
+        break;
+    }
+
+    Lexer_destroy(&lexer);
+    AstContext_destroy(&context);
     return res;
 }
 
 int main(int argc, char const* const* argv) {
     int res;
-    char const* path;
+    char const* path = NULL;
     char* file_buf = NULL;
     size_t file_size;
     size_t file_buf_capacity;
     SystemFile file;
+    DriverAction action = DriverAction_Unknown;
 
-    if (argc < 2) {
+    {
+        int i;
+        for (i = 1; i < argc; i += 1) {
+            char const* arg;
+            arg = argv[i];
+            if (arg[0] != '-' || arg[1] == 0) {
+                path = arg;
+                continue;
+            }
+            if (strcmp(arg, "--dump-lex") == 0) {
+                action = DriverAction_DumpLex;
+                continue;
+            }
+            if (strcmp(arg, "--check-lex") == 0) {
+                action = DriverAction_CheckLex;
+                continue;
+            }
+            if (strcmp(arg, "--check-lex-invalid") == 0) {
+                action = DriverAction_CheckLexInvalid;
+                continue;
+            }
+            if (strcmp(arg, "--dump-syntax") == 0) {
+                action = DriverAction_DumpSyntax;
+                continue;
+            }
+            if (strcmp(arg, "--check-syntax") == 0) {
+                action = DriverAction_CheckSyntax;
+                continue;
+            }
+            if (strcmp(arg, "--check-syntax-invalid") == 0) {
+                action = DriverAction_CheckSyntaxInvalid;
+                continue;
+            }
+            Writer_print(
+                Writer_stderr, "zeno-spec: error: unknown flag '%s'\n", arg
+            );
+            return 1;
+        }
+    }
+
+    if (path == NULL) {
         error("no input files");
         return 1;
     }
 
-    if (argc > 2) {
-        error("multiple input files not supported yet");
+    if (action == DriverAction_Unknown) {
+        error("action not specified");
         return 1;
     }
-
-    path = argv[1];
 
     if (path[0] == '-' && path[1] == 0) {
         path = "<stdin>";
@@ -137,10 +311,29 @@ int main(int argc, char const* const* argv) {
     file_buf[file_size] = 0;
 
     {
+        ByteStringRef file_ref;
         ByteStringRef source;
+
         source.data = file_buf;
         source.size = file_size + 1;
-        res = print_tokens(source);
+
+        file_ref.data = path;
+        file_ref.size = strlen(path);
+
+        switch (action) {
+        case DriverAction_DumpLex:
+        case DriverAction_CheckLex:
+        case DriverAction_CheckLexInvalid:
+            res = lex_action(file_ref, source, action);
+            break;
+        case DriverAction_DumpSyntax:
+        case DriverAction_CheckSyntax:
+        case DriverAction_CheckSyntaxInvalid:
+            res = syntax_action(file_ref, source, action);
+            break;
+        case DriverAction_Unknown:
+            assert(0 && "unreachable");
+        }
     }
 
     free(file_buf);

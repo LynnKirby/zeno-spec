@@ -34,3 +34,30 @@ StringRef LexErrorKind_name(LexErrorKind kind) {
     assert(kind < LexErrorKind_COUNT);
     return lex_error_kind_names[kind];
 }
+
+void Token_dump(Token const* token, Writer* writer) {
+    Writer_print(
+        writer,
+        "Token(kind = .%s, position = <%u:%u>",
+        TokenKind_name(token->kind),
+        token->pos.line,
+        token->pos.column
+    );
+
+    switch (token->kind) {
+    case TokenKind_IntLiteral:
+        Writer_print(writer, ", value = %u", token->value.integer);
+        break;
+
+    case TokenKind_Identifier:
+        Writer_print(writer, ", value = \"");
+        Writer_write_str(writer, token->value.string);
+        Writer_print(writer, "\"");
+        break;
+
+    default:
+        break;
+    }
+
+    Writer_print(writer, ")\n");
+}

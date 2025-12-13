@@ -1,5 +1,5 @@
-#ifndef _ZENO_SPEC_SRC_DEFS_H
-#define _ZENO_SPEC_SRC_DEFS_H
+#ifndef _ZENO_SPEC_SRC_BASE_H
+#define _ZENO_SPEC_SRC_BASE_H
 
 /* Check Standard C version. */
 #ifdef __STDC_VERSION__
@@ -58,5 +58,21 @@ typedef struct StringRef {
     char const* data;
     size_t size;
 } StringRef;
+
+/*
+ * Memory utilities.
+ */
+
+/** Allocate, and fail on out of memory. */
+void* xmalloc(size_t size);
+
+/** Arena allocator. */
+typedef struct Arena {
+    struct ArenaChunk* chunks;
+} Arena;
+
+void Arena_init(Arena* arena);
+void Arena_destroy(Arena* arena);
+void* Arena_allocate(Arena* arena, size_t size);
 
 #endif

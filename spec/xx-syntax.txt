@@ -2,6 +2,7 @@
 
 A source file is a sequence of Unicode characters.
 The \emph{lexical syntax} converts a source file into a list of tokens.
+The \emph{hierarchical syntax} converts a list of tokens into a syntax tree.
 
 \subsection{Source file}
 
@@ -25,14 +26,16 @@ The "." metacharacter is limited to the characters defined in \ref[source-file].
 \end{note}
 
 \begin{peg}
-SourceFile <- <U+FEFF>? Token*
+SourceFile <- <U+FEFF>? (Trivia / Token)*
 
-Token <-
+Trivia <-
       Whitespace
     / LineTerminator
     / LineComment
     / BlockComment
-    / Symbol
+
+Token <-
+      Symbol
     / Keyword
     / IDENTIFIER
     / INT_LITERAL
@@ -126,6 +129,32 @@ HexLiteral <- ("0x" / "0X") [0-9a-fA-F] ("_" [0-9a-fA-F])* !IdContinue
 
 BinaryLiteral <- ("0b" / "0B") [01] ("_" [01])* !IdContinue
 \end{peg}
+
+\subsection{Hierarchical syntax}
+
+The hierarchical syntax is defined with a context-free grammar.
+
+\begin{grammar}
+File ::= Item
+
+Item ::= FunctionItem
+
+Block ::= "{" Stmt ";" "}"
+
+Stmt ::= ReturnStmt
+
+ReturnStmt ::= "return" Expr
+
+Expr ::=
+      PrimaryExpr
+
+PrimaryExpr ::=
+      INT_LITERAL
+    | "(" Expr ")"
+
+FunctionItem ::= "def" IDENTIFIER FunctionItemParams Block
+FunctionItemParams ::= "(" ")"
+\end{grammar}
 
 \subsection{Limits}
 

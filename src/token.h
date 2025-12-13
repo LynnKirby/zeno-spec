@@ -1,7 +1,8 @@
 #ifndef _ZENO_SPEC_SRC_TOKEN_H
 #define _ZENO_SPEC_SRC_TOKEN_H
 
-#include "src/defs.h"
+#include "src/base.h"
+#include "src/io.h"
 
 #define SYMBOL_KIND_LIST(X)       \
     X(LeftParen, "(")             \
@@ -68,13 +69,13 @@
     X(Let, "let")             \
     X(Mut, "mut")             \
     X(Out, "out")             \
-    X(Ref, "ref")             \
     X(Return, "return")       \
     X(True, "true")           \
     X(Var, "var")             \
     X(While, "while")
 
 #define TOKEN_KIND_LIST(X) \
+    X(EndOfFile, "")       \
     X(Identifier, "")      \
     X(IntLiteral, "")      \
     SYMBOL_KIND_LIST(X)    \
@@ -109,9 +110,13 @@ typedef enum LexErrorKind {
 
 StringRef LexErrorKind_name(LexErrorKind kind);
 
-typedef struct LexError {
+typedef struct SourcePos {
     uint32_t line;
     uint32_t column;
+} SourcePos;
+
+typedef struct LexError {
+    SourcePos pos;
     LexErrorKind kind;
     union {
         int32_t character;
@@ -119,12 +124,14 @@ typedef struct LexError {
 } LexError;
 
 typedef struct Token {
-    uint32_t line;
-    uint32_t column;
+    SourcePos pos;
     TokenKind kind;
     union {
         uint32_t integer; /* TODO: bigint */
+        StringRef string;
     } value;
 } Token;
+
+void Token_dump(Token const* token, Writer* writer);
 
 #endif

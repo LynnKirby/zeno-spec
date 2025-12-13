@@ -13,8 +13,8 @@ void Lexer_init(Lexer* lexer, ByteStringRef source, LexerConfig const* config) {
     lexer->done = false;
     lexer->cursor = (uint8_t const*)source.data;
     lexer->limit = lexer->cursor + source.size - 1;
-    lexer->cursor_line = 1;
-    lexer->cursor_column = 1;
+    lexer->cursor_pos.line = 1;
+    lexer->cursor_pos.column = 1;
     lexer->total_characters = 0;
 
     if (config == NULL) {
@@ -40,8 +40,7 @@ void Lexer_destroy(Lexer* lexer) {
 }
 
 static void sync_token_pos_to_cursor(Lexer* lexer, LexResult* result) {
-    result->u.token.line = lexer->cursor_line;
-    result->u.token.column = lexer->cursor_column;
+    result->u.token.pos = lexer->cursor_pos;
 }
 
 static void set_token_kind(LexResult* result, TokenKind kind) {
@@ -52,27 +51,28 @@ static void set_token_integer(LexResult* result, uint32_t integer) {
     result->u.token.value.integer = integer;
 }
 
-static void set_error(Lexer* lexer, LexResult* result, LexErrorKind error) {
-    uint32_t line;
-    uint32_t column;
+static void set_token_string(LexResult* result, StringRef string) {
+    result->u.token.value.string = string;
+}
 
-    line = result->u.token.line;
-    column = result->u.token.column;
+static void set_error(Lexer* lexer, LexResult* result, LexErrorKind error) {
+    SourcePos pos;
+
+    pos = result->u.token.pos;
 
     result->is_token = false;
-    result->u.error.line = line;
-    result->u.error.column = column;
+    result->u.error.pos = pos;
     result->u.error.kind = error;
 
     lexer->done = true;
 }
 
 static void increment_line(Lexer* lexer, LexResult* result) {
-    lexer->cursor_line += 1;
-    lexer->cursor_column = 1;
+    lexer->cursor_pos.line += 1;
+    lexer->cursor_pos.column = 1;
     lexer->characters_in_line = 0;
 
-    if (lexer->cursor_line > MAX_LINES_PER_FILE) {
+    if (lexer->cursor_pos.line > MAX_LINES_PER_FILE) {
         sync_token_pos_to_cursor(lexer, result);
         set_error(lexer, result, LexErrorKind_LineLimitExceeded);
         longjmp(lexer->exit_jmp_buf, 1);
@@ -97,14 +97,14 @@ static void handle_invisible_character(Lexer* lexer, LexResult* result) {
 }
 
 static void handle_normal_character(Lexer* lexer, LexResult* result) {
-    lexer->cursor_column += 1;
+    lexer->cursor_pos.column += 1;
     handle_invisible_character(lexer, result);
 }
 
 static void handle_tab(Lexer* lexer, LexResult* result) {
-    lexer->cursor_column +=
+    lexer->cursor_pos.column +=
         lexer->config.tab_stop
-        - (lexer->cursor_column % lexer->config.tab_stop);
+        - (lexer->cursor_pos.column % lexer->config.tab_stop);
     handle_invisible_character(lexer, result);
 }
 
@@ -329,12 +329,20 @@ loop:
 
     if (is_id_start(lexer->cursor[0])) {
         uint8_t const* start;
+        TokenKind kind;
         start = lexer->cursor;
         while (is_id_continue(lexer->cursor[0])) {
             lexer->cursor += 1;
             handle_normal_character(lexer, result);
         }
-        set_token_kind(result, id_or_keyword(start, lexer->cursor - start));
+        kind = id_or_keyword(start, lexer->cursor - start);
+        set_token_kind(result, kind);
+        if (kind == TokenKind_Identifier) {
+            StringRef string;
+            string.data = (char const*)start;
+            string.size = lexer->cursor - start;
+            set_token_string(result, string);
+        }
         return true;
     }
 
@@ -370,7 +378,8 @@ loop:
         /* Check if EOF or embedded nul. */
         if (lexer->cursor == lexer->limit) {
             lexer->done = true;
-            return false;
+            set_token_kind(result, TokenKind_EndOfFile);
+            return true;
         }
         break;
 

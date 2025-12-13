@@ -1,7 +1,7 @@
 #ifndef _ZENO_SPEC_SRC_LEX_H
 #define _ZENO_SPEC_SRC_LEX_H
 
-#include "src/defs.h"
+#include "src/base.h"
 #include "src/token.h"
 
 #include <setjmp.h>
@@ -22,8 +22,7 @@ typedef struct Lexer {
     LexerConfig config;
     uint8_t const* cursor;
     uint8_t const* limit;
-    uint32_t cursor_line;
-    uint32_t cursor_column;
+    SourcePos cursor_pos;
     uint32_t characters_in_line;
     uint32_t total_characters;
     jmp_buf exit_jmp_buf;
