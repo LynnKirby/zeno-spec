@@ -1,0 +1,4 @@
+def f() {
+    // error: binary literal has no value, only prefix
+    var x = 0b;
+}

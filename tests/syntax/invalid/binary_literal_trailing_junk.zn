@@ -1,0 +1,4 @@
+def f() {
+    // error: characters adjacent to binary literal
+    var x = 0b0101junk;
+}

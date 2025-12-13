@@ -1,0 +1,4 @@
+def f() {
+    // error: hex literal has no value, only prefix
+    var x = 0x;
+}

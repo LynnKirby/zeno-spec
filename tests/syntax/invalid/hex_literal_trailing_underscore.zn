@@ -1,0 +1,4 @@
+def f() {
+    // error: underscore is trailing instead of between digits
+    var x = 0x123_;
+}

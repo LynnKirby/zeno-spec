@@ -1,0 +1,2 @@
+// Below is the byte 0xFF which is invalid in UTF-8
+ÿ // <- here

@@ -1,0 +1,96 @@
+// This file includes every token.
+
+/* Block comment */
+
+/* Nested
+    /* block */
+    /* co /* mm */ ent */
+*/
+
+/*
+In a block comment:
+    this is an asterisk -> *
+    this is a slash -> /
+*/
+
+class C {}
+interface D {}
+
+@Attr
+def function[T](out a: A, mut b: B) -> C {
+    import a;
+
+    let f = () => x;
+
+    // Symbols
+    a = b == c;
+    a = b != c;
+    a = b + c;
+    a += b;
+    a = b - c;
+    a -= b;
+    a = b * c;
+    a *= b;
+    a = b / c;
+    a /= b;
+    a = b % c;
+    a %= b;
+
+    a = b < c;
+    a = b <= c;
+    a = b > c;
+    a = b >= c;
+
+    a = b << c;
+    a <<= b;
+    a = b >> c;
+    a >>= b;
+
+    a = b && c;
+    a &&= b;
+    a = b || c;
+    a ||= b;
+
+    a = b ^^ c;
+    a ^^= b;
+    a = b ^^ c;
+    a ^^= b;
+
+    a = !b;
+    a = ~b;
+
+    a = b & b;
+    a &= b;
+    a = b | c;
+    a |= b;
+    a = b ^ c;
+    a ^= b;
+
+    a = b.c;
+    a = b...c;
+    b = b..<c;
+
+    let a: a = A;
+    var B: B = B;
+
+    if true {} else if false { }
+    for x in y {}
+    while x {}
+
+    let every_character_id =
+        abcdefghijklmnopqrstuvwxzyABCDEFGHIJKLMNOPQRSTUVXYZ0123456789_;
+
+    let zero_decimal = 0;
+    let nonzero_decimal = 123456789;
+    let nonzero_decimal_with_underscore = 1_23_456_78_9;
+
+    let hex_lower_lower = 0x0123456789abcdef;
+    let hex_lower_upper = 0x0123456789ABCDEF;
+    let hex_upper_lower = 0X0123456789abcdef;
+    let hex_upper_upper = 0x0123456789ABCDEF;
+    let hex_underscore = 0x0_12_345_6789_ABC_DE_F;
+
+    let bin_lower = 0b00011011;
+    let bin_upper = 0B00011011;
+    let bin_underscore = 0b1_10_1001_01_1;
+}

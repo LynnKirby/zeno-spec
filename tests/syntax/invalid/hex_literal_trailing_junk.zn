@@ -1,0 +1,4 @@
+def f() {
+    // error: characters adjacent to hex literal
+    var x = 0xABCDjunk;
+}

@@ -1,0 +1,140 @@
+\section{Concrete syntax}
+
+A source file is a sequence of Unicode characters.
+The \emph{lexical syntax} converts a source file into a list of tokens.
+
+\subsection{Source file}
+
+Characters in a source file are limited to (TODO: exclude control, bidi, etc).
+
+\subsection{Lexical syntax}
+
+The lexical syntax is defined with a parsing expression grammar \cite[PEG].
+
+The tokens produced are:
+
+\begin{items}
+    \item{The string terminals in the Symbol rule.}
+    \item{The string terminals in the Keyword rule.}
+    \item{The IDENTIFIER rule.}
+    \item{The INT_LITERAL rule.}
+\end{items}
+
+\begin{note}
+The "." metacharacter is limited to the characters defined in \ref[source-file].
+\end{note}
+
+\begin{peg}
+SourceFile <- <U+FEFF>? Token*
+
+Token <-
+      Whitespace
+    / LineTerminator
+    / LineComment
+    / BlockComment
+    / Symbol
+    / Keyword
+    / IDENTIFIER
+    / INT_LITERAL
+
+Whitespace <- <U+0009 Tab> / <U+0020 Space>
+
+LineTerminator <-
+      <U+000D Carriage Return> <U+000A Line Feed>
+    / <U+000D Carriage Return>
+    / <U+000A Line Feed>
+
+LineComment <- "//" (!LineTerminator .)*
+
+BlockComment <- "/*" (BlockComment / .)* "*/"
+
+Symbol <-
+      "("
+    / ")"
+    / "{"
+    / "}"
+    / "["
+    / "]"
+    / "..."
+    / "..<"
+    / "."
+    / ","
+    / ":"
+    / ";"
+    / "=="
+    / "=>"
+    / "="
+    / "!="
+    / "!"
+    / "+="
+    / "+"
+    / "->"
+    / "-="
+    / "-"
+    / "*="
+    / "*"
+    / "/="
+    / "/" !"*"
+    / "<<="
+    / "<<"
+    / "<="
+    / "<"
+    / ">>="
+    / ">>"
+    / ">="
+    / ">"
+    / "^^="
+    / "^^"
+    / "^="
+    / "^"
+    / "@"
+
+Keyword <-
+    (
+          "def"
+        / "class"
+        / "else"
+        / "false"
+        / "for"
+        / "if"
+        / "import"
+        / "interface"
+        / "in"
+        / "let"
+        / "mut"
+        / "out"
+        / "return"
+        / "true"
+        / "var"
+        / "while"
+    ) !IdContinue
+
+IDENTIFIER <- IdStart IdContinue*
+   IdStart <- [a-zA-Z_]
+IdContinue <- IdStart / [0-9]
+
+INT_LITERAL <-
+      DecimalLiteral
+    / HexLiteral
+    / BinaryLiteral
+
+DecimalLiteral <-
+      "0" !IdContinue
+    / [1-9] ("_" [0-9])* !IdContinue
+
+HexLiteral <- ("0x" / "0X") [0-9a-fA-F] ("_" [0-9a-fA-F])* !IdContinue
+
+BinaryLiteral <- ("0b" / "0B") [01] ("_" [01])* !IdContinue
+\end{peg}
+
+\subsection{Limits}
+
+Source files are divided into lines by the LineTerminator rule.
+The LineTerminator characters are included in the line as its last characters.
+The last line has no LineTerminator characters.
+
+A source file shall have at most $2^22 - 1$ (4194303) characters.
+
+A source file shall have at most $2^20 - 1$ (1048575) lines.
+
+A source file shall have at most $2^12 - 1$ (4095) characters per line.

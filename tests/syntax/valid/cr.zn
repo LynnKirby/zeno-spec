@@ -1,0 +1,1 @@
+// CR line ending after line comment/* CR line ending inside block comment.*/// CR line ending after item.class C {}

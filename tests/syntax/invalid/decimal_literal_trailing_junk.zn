@@ -1,0 +1,4 @@
+def f() {
+    // error: characters adjacent to decimal literal
+    var x = 123junk;
+}

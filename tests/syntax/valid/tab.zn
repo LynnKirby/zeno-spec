@@ -1,0 +1,10 @@
+// This file has tabs
+	class C {} // tab
+		class D {} // tab tab
+	   	class E {} // tab space*3 tab
+
+//	<- Line comment with internal tab
+
+/*
+	<- Block comment with internal tab
+ */

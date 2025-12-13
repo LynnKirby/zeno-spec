@@ -1,0 +1,8 @@
+// CRLF line ending after line comment
+
+/* 
+CRLF line ending inside block comment.
+*/
+
+// CRLF line ending after item.
+class C {}

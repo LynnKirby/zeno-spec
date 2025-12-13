@@ -1,0 +1,4 @@
+def f() {
+    // error: leading zero on decimal integer not allowed
+    var x = 01;
+}
