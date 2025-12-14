@@ -1,4 +1,5 @@
 #include "src/support/io.h"
+#include "src/support/malloc.h"
 
 #include <string.h>
 
@@ -20,6 +21,47 @@ static SystemIoError FileWriter_write(
     SystemFile system_file;
     system_file = ((FileWriter*)writer)->system_file;
     return SystemFile_write(system_file, data, size);
+}
+
+SystemIoError SystemFile_read_all(SystemFile file, void** data, size_t* size) {
+    size_t capacity;
+    *size = 0;
+
+    capacity = 512;
+    *data = xmalloc(capacity);
+
+    for (;;) {
+        SystemIoError res;
+        size_t chunk_read;
+
+        if (capacity - *size == 0) {
+            /* FIXME: overflow */
+            capacity += capacity / 2;
+            *data = xrealloc(*data, capacity);
+        }
+
+        res = SystemFile_read(
+            file, (char*)*data + *size, sizeof(capacity - *size), &chunk_read
+        );
+
+        if (res != SystemIoError_Success) {
+            xfree(*data);
+            return res;
+        }
+
+        *size += chunk_read;
+
+        if (chunk_read == 0) {
+            /* Nul-terminate */
+            if (capacity - *size == 0) {
+                /* FIXME: overflow */
+                *data = xrealloc(*data, capacity + 1);
+            }
+            ((char*)*data)[*size] = 0;
+
+            return SystemIoError_Success;
+        }
+    }
 }
 
 /*

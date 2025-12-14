@@ -1,6 +1,8 @@
 #ifndef _ZENO_SPEC_SRC_SUPPORT_STRING_REF_H
 #define _ZENO_SPEC_SRC_SUPPORT_STRING_REF_H
 
+#include "src/support/stdint.h"
+
 #include <stddef.h>
 
 /** Borrowed reference to a byte string (do not assume the encoding). */

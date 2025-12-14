@@ -39,6 +39,8 @@ SystemIoError SystemFile_open_read(SystemFile* file, char const* path);
 
 int SystemFile_isatty(SystemFile file);
 
+SystemIoError SystemFile_read_all(SystemFile file, void** data, size_t* size);
+
 /*
  * Writer interface.
  */

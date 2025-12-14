@@ -30,7 +30,10 @@ V_ = @
 #
 
 zeno_spec_objects = \
+	src/driver/diagnostics$(O) \
+	src/driver/lex_actions$(O) \
 	src/driver/main$(O) \
+	src/driver/parse_actions$(O) \
 	src/lang/ast$(O) \
 	src/lang/lex$(O) \
 	src/lang/parse.tab$(O) \
