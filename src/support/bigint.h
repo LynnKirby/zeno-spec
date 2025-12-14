@@ -3,6 +3,7 @@
 
 #include "src/support/base.h"
 #include "src/support/io.h"
+#include "src/support/string_ref.h"
 
 typedef struct BigInt {
 #if UINTPTR_MAX < UINT64_MAX

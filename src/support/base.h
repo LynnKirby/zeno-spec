@@ -47,16 +47,4 @@
     #define ATTR_UNUSED
 #endif
 
-/** Borrowed reference to a byte string (do not assume the encoding). */
-typedef struct ByteStringRef {
-    char const* data;
-    size_t size;
-} ByteStringRef;
-
-/** Borrowed reference to a UTF-8 string. */
-typedef struct StringRef {
-    char const* data;
-    size_t size;
-} StringRef;
-
 #endif

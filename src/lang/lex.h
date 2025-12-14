@@ -3,6 +3,7 @@
 
 #include "src/support/base.h"
 #include "src/lang/token.h"
+#include "src/support/string_ref.h"
 
 #include <setjmp.h>
 

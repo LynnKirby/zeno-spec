@@ -5,6 +5,7 @@
 #include "src/support/base.h"
 #include "src/support/bigint.h"
 #include "src/support/io.h"
+#include "src/support/string_ref.h"
 
 typedef struct AstContext {
     Arena arena;

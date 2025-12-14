@@ -4,6 +4,7 @@
 #include "src/support/base.h"
 #include "src/support/bigint.h"
 #include "src/support/io.h"
+#include "src/support/string_ref.h"
 
 #define SYMBOL_KIND_LIST(X)       \
     X(LeftParen, "(")             \

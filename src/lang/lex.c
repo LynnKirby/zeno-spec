@@ -350,7 +350,7 @@ loop:
         set_token_kind(result, kind);
         if (kind == TokenKind_Identifier) {
             StringRef string;
-            string.data = (char const*)start;
+            string.data = start;
             string.size = lexer->cursor - start;
             set_token_string(result, string);
         }

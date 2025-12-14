@@ -3,6 +3,7 @@
 
 #include "src/lang/ast.h"
 #include "src/lang/lex.h"
+#include "src/support/string_ref.h"
 
 typedef enum ParseResultKind {
     ParseResultKind_Success,

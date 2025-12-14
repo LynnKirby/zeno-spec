@@ -2,6 +2,7 @@
 #define _ZENO_SPEC_SRC_SUPPORT_IO_H
 
 #include "src/support/base.h"
+#include "src/support/string_ref.h"
 
 #include <stdarg.h>
 

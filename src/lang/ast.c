@@ -13,7 +13,7 @@ void AstContext_destroy(AstContext* context) {
 StringRef AstContext_intern_string(AstContext* context, StringRef str) {
     /* TODO: string table */
     StringRef copy;
-    char* data;
+    uint8_t* data;
     data = Arena_allocate(&context->arena, str.size);
     memcpy(data, str.data, str.size);
     copy.data = data;

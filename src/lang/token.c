@@ -3,19 +3,19 @@
 #include <assert.h>
 
 static StringRef const token_kind_names[] = {
-    #define X(name, str) {(#name), sizeof(#name) - 1},
+    #define X(name, str) STATIC_STRING_REF(#name),
     TOKEN_KIND_LIST(X)
     #undef X
 };
 
 static StringRef const token_kind_spellings[] = {
-    #define X(name, str) {(str), sizeof(str) - 1},
+    #define X(name, str) STATIC_STRING_REF(str),
     TOKEN_KIND_LIST(X)
     #undef X
 };
 
 static StringRef const lex_error_kind_names[] = {
-    #define X(name) {(#name), sizeof(#name) - 1},
+    #define X(name) STATIC_STRING_REF(#name),
     LEX_ERROR_KIND_LIST(X)
     #undef X
 };
