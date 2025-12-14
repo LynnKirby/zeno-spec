@@ -1,5 +1,6 @@
 #include "src/support/bigint.h"
 #include "src/support/io.h"
+#include "src/support/malloc.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -31,7 +32,7 @@ void BigInt_destroy(BigInt* bigint) {
     if (bigint->opaque & 1) {
         return;
     }
-    free((void*)bigint->opaque);
+    xfree((void*)bigint->opaque);
 }
 
 BigInt BigInt_parse(ByteStringRef string, int base) {

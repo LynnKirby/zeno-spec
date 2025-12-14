@@ -59,11 +59,4 @@ typedef struct StringRef {
     size_t size;
 } StringRef;
 
-/*
- * Memory utilities.
- */
-
-/** Allocate, and fail on out of memory. */
-void* xmalloc(size_t size);
-
 #endif

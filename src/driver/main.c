@@ -1,6 +1,7 @@
-#include "src/support/io.h"
 #include "src/lang/lex.h"
 #include "src/lang/parse.h"
+#include "src/support/io.h"
+#include "src/support/malloc.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -271,7 +272,7 @@ int main(int argc, char const* const* argv) {
         }
     }
 
-    file_buf = malloc(1024);
+    file_buf = xmalloc(1024);
     file_size = 0;
     file_buf_capacity = 1024;
 
@@ -283,7 +284,7 @@ int main(int argc, char const* const* argv) {
         res = SystemFile_read(file, chunk, sizeof(chunk), &chunk_read);
         if (res != SystemIoError_Success) {
             error("could not read '%s': system error XX", path);
-            free(file_buf);
+            xfree(file_buf);
             return 1;
         }
 
@@ -299,7 +300,7 @@ int main(int argc, char const* const* argv) {
             } else {
                 memcpy(file_buf + file_size, chunk, buf_available);
                 file_buf_capacity += file_buf_capacity / 2; /* FIXME: overflow */
-                file_buf = realloc(file_buf, file_buf_capacity);
+                file_buf = xrealloc(file_buf, file_buf_capacity);
             }
         }
     }
@@ -336,7 +337,7 @@ int main(int argc, char const* const* argv) {
         }
     }
 
-    free(file_buf);
+    xfree(file_buf);
 
     return res;
 }

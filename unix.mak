@@ -36,11 +36,11 @@ zeno_spec_objects = \
 	src/lang/parse.tab$(O) \
 	src/lang/token$(O) \
 	src/support/arena$(O) \
-	src/support/base$(O) \
 	src/support/bigint$(O) \
 	src/support/encoding$(O) \
 	src/support/format$(O) \
-	src/support/io$(O)
+	src/support/io$(O) \
+	src/support/malloc$(O)
 
 zeno_spec_exe = zeno-spec$(E)
 

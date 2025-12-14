@@ -1,7 +1,5 @@
 #include "src/support/arena.h"
-
-#include "src/support/base.h" /* xmalloc */
-#include <stdlib.h>
+#include "src/support/malloc.h"
 
 /* TODO: use actual arena allocation but keep this per-allocation chunk
  * implementation as an option. Useful for checking under AddressSanitizer. */
@@ -22,8 +20,8 @@ void Arena_destroy(Arena* arena) {
     while (chunk != NULL) {
         ArenaChunk* next;
         next = chunk->next;
-        free(chunk->data);
-        free(chunk);
+        xfree(chunk->data);
+        xfree(chunk);
         chunk = next;
     }
 }
