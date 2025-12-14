@@ -35,6 +35,7 @@ zeno_spec_objects = \
 	src/lang/lex$(O) \
 	src/lang/parse.tab$(O) \
 	src/lang/token$(O) \
+	src/support/arena$(O) \
 	src/support/base$(O) \
 	src/support/bigint$(O) \
 	src/support/encoding$(O) \

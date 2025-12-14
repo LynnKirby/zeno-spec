@@ -1,6 +1,7 @@
 #ifndef _ZENO_SPEC_SRC_AST_H
 #define _ZENO_SPEC_SRC_AST_H
 
+#include "src/support/arena.h"
 #include "src/support/base.h"
 #include "src/support/bigint.h"
 #include "src/support/io.h"

@@ -66,13 +66,4 @@ typedef struct StringRef {
 /** Allocate, and fail on out of memory. */
 void* xmalloc(size_t size);
 
-/** Arena allocator. */
-typedef struct Arena {
-    struct ArenaChunk* chunks;
-} Arena;
-
-void Arena_init(Arena* arena);
-void Arena_destroy(Arena* arena);
-void* Arena_allocate(Arena* arena, size_t size);
-
 #endif
