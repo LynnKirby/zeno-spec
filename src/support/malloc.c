@@ -16,7 +16,7 @@ void* xreallocarray(void* p, size_t n, size_t m) {
     p = realloc(p, total);
 
     if (p == NULL) {
-        Writer_print(Writer_stdout, "zeno-spec: error: out of memory\n");
+        Writer_format(Writer_stdout, "zeno-spec: error: out of memory\n");
         exit(1);
     }
 

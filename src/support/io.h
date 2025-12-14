@@ -68,10 +68,10 @@ static inline SystemIoError Writer_write(
 }
 
 /** Write formatted string. */
-SystemIoError Writer_print(Writer* writer, char const* format, ...);
+SystemIoError Writer_format(Writer* writer, char const* format, ...);
 
 /** Write formatted string with va_list. */
-SystemIoError Writer_vprint(Writer* writer, char const* format, va_list args);
+SystemIoError Writer_vformat(Writer* writer, char const* format, va_list args);
 
 /** Write string. */
 SystemIoError Writer_write_str(Writer* writer, StringRef string);
@@ -86,6 +86,6 @@ SystemIoError Writer_write_bstr(Writer* writer, ByteStringRef string);
 SystemIoError Writer_write_int(Writer* writer, intmax_t value, int base);
 
 /** Write unsigned integer. */
-SystemIoError Writer_write_uint(Writer* writer, intmax_t value, int base);
+SystemIoError Writer_write_uint(Writer* writer, uintmax_t value, int base);
 
 #endif

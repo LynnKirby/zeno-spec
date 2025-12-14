@@ -10,38 +10,38 @@
 static void note(char const* format, ...) {
     va_list args;
     va_start(args, format);
-    Writer_print(Writer_stderr, "zeno-spec: note: ");
-    Writer_vprint(Writer_stderr, format, args);
-    Writer_print(Writer_stderr, "\n");
+    Writer_format(Writer_stderr, "zeno-spec: note: ");
+    Writer_vformat(Writer_stderr, format, args);
+    Writer_format(Writer_stderr, "\n");
     va_end(args);
 }
 
 static void error(char const* format, ...) {
     va_list args;
     va_start(args, format);
-    Writer_print(Writer_stderr, "zeno-spec: error: ");
-    Writer_vprint(Writer_stderr, format, args);
-    Writer_print(Writer_stderr, "\n");
+    Writer_format(Writer_stderr, "zeno-spec: error: ");
+    Writer_vformat(Writer_stderr, format, args);
+    Writer_format(Writer_stderr, "\n");
     va_end(args);
 }
 
 static void print_token_kind_description(Writer* writer, TokenKind kind) {
     switch (kind) {
     case TokenKind_EndOfFile:
-        Writer_print(writer, "end of file");
+        Writer_format(writer, "end of file");
         break;
     case TokenKind_Identifier:
-        Writer_print(writer, "identifier");
+        Writer_format(writer, "identifier");
         break;
     case TokenKind_IntLiteral:
-        Writer_print(writer, "integer literal");
+        Writer_format(writer, "integer literal");
         break;
     #define CASE(name, str) case TokenKind_##name:
     SYMBOL_KIND_LIST(CASE)
-        Writer_print(writer, "symbol `%s`", TokenKind_spelling(kind));
+        Writer_format(writer, "symbol `%s`", TokenKind_spelling(kind));
         break;
     KEYWORD_KIND_LIST(CASE)
-        Writer_print(writer, "keyword `%s`", TokenKind_spelling(kind));
+        Writer_format(writer, "keyword `%s`", TokenKind_spelling(kind));
         break;
     #undef CASE
     }
@@ -50,28 +50,28 @@ static void print_token_kind_description(Writer* writer, TokenKind kind) {
 static void print_lex_error_description(Writer* writer, LexError const* error) {
     switch (error->kind) {
     case LexErrorKind_BadEncoding:
-        Writer_print(writer, "invalid UTF-8 encoding");
+        Writer_format(writer, "invalid UTF-8 encoding");
         break;
     case LexErrorKind_LineLimitExceeded:
-        Writer_print(writer, "too many lines in source file");
+        Writer_format(writer, "too many lines in source file");
         break;
     case LexErrorKind_ColumnLimitExceeded:
-        Writer_print(writer, "too many characters in line");
+        Writer_format(writer, "too many characters in line");
         break;
     case LexErrorKind_CharacterLimitExceeded:
-        Writer_print(writer, "too many characters in file");
+        Writer_format(writer, "too many characters in file");
         break;
     case LexErrorKind_UnclosedBlockComment:
-        Writer_print(writer, "unclosed block comment");
+        Writer_format(writer, "unclosed block comment");
         break;
     case LexErrorKind_DecimalLeadingZero:
-        Writer_print(writer, "decimal literal cannot have leading zero");
+        Writer_format(writer, "decimal literal cannot have leading zero");
         break;
     case LexErrorKind_BadIntLiteral:
-        Writer_print(writer, "invalid integer literal");
+        Writer_format(writer, "invalid integer literal");
         break;
     case LexErrorKind_UnexpectedCharacter:
-        Writer_print(
+        Writer_format(
             writer, "unexpected character U+%04X", error->value.character
         );
     }
@@ -81,29 +81,29 @@ static void print_lex_error(
     Writer* writer, ByteStringRef path, LexError const* error
 ) {
     Writer_write_bstr(writer, path);
-    Writer_print(writer, ":%u:%u: error: ", error->pos.line, error->pos.column);
+    Writer_format(writer, ":%u:%u: error: ", error->pos.line, error->pos.column);
     print_lex_error_description(writer, error);
-    Writer_print(writer, "\n");
+    Writer_format(writer, "\n");
 }
 
 static void print_parse_error(
     Writer* writer, ByteStringRef path, ParseError const* error
 ) {
     Writer_write_bstr(writer, path);
-    Writer_print(
+    Writer_format(
         writer,
         ":%u:%u: error: unexpected ",
         error->token_pos.line,
         error->token_pos.column
     );
     print_token_kind_description(writer, error->token_kind);
-    Writer_print(writer, "\n");
+    Writer_format(writer, "\n");
 }
 
 static void print_yacc_error(Writer* writer, ByteStringRef message) {
-    Writer_print(writer, "zeno-spec: error: yacc: ");
+    Writer_format(writer, "zeno-spec: error: yacc: ");
     Writer_write_bstr(writer, message);
-    Writer_print(writer, "\n");
+    Writer_format(writer, "\n");
 }
 
 typedef enum DriverAction {
@@ -239,7 +239,7 @@ int main(int argc, char const* const* argv) {
                 action = DriverAction_CheckParseInvalid;
                 continue;
             }
-            Writer_print(
+            Writer_format(
                 Writer_stderr, "zeno-spec: error: unknown flag '%s'\n", arg
             );
             return 1;

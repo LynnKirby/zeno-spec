@@ -4,11 +4,11 @@
 
 #define WRITE(data, size) writer->write(writer, (data), (size));
 
-SystemIoError Writer_print(Writer* writer, char const* format, ...) {
+SystemIoError Writer_format(Writer* writer, char const* format, ...) {
     va_list args;
     SystemIoError res;
     va_start(args, format);
-    res = Writer_vprint(writer, format, args);
+    res = Writer_vformat(writer, format, args);
     va_end(args);
     return res;
 }
@@ -124,7 +124,7 @@ static int try_parse_int(char const** p_format) {
     return res;
 }
 
-SystemIoError Writer_vprint(Writer* writer, char const* format, va_list args) {
+SystemIoError Writer_vformat(Writer* writer, char const* format, va_list args) {
     SystemIoError res = SystemIoError_Success;
     char const* chunk_start;
     FormatOption options;
@@ -232,6 +232,6 @@ SystemIoError Writer_write_int(Writer* writer, intmax_t value, int base) {
     );
 }
 
-SystemIoError Writer_write_uint(Writer* writer, intmax_t value, int base) {
+SystemIoError Writer_write_uint(Writer* writer, uintmax_t value, int base) {
     return print_number(writer, value, false, base, 0, FormatOption_Uppercase);
 }
