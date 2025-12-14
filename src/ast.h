@@ -2,6 +2,7 @@
 #define _ZENO_SPEC_SRC_AST_H
 
 #include "src/base.h"
+#include "src/bigint.h"
 #include "src/io.h"
 
 typedef struct AstContext {
@@ -69,14 +70,14 @@ struct ReturnExpr {
 
 struct IntLiteralExpr {
     Expr base;
-    uint32_t value;
+    BigInt value;
 };
 
 FunctionItem* FunctionItem_new(AstContext* context, StringRef name, Expr* body);
 
 ItemExpr* ItemExpr_new(AstContext* context, Item* item);
 ReturnExpr* ReturnExpr_new(AstContext* context, Expr* value);
-IntLiteralExpr* IntLiteralExpr_new(AstContext* context, uint32_t value);
+IntLiteralExpr* IntLiteralExpr_new(AstContext* context, BigInt value);
 
 void Item_dump(Item const* item, Writer* writer);
 void Expr_dump(Expr const* expr, Writer* writer);

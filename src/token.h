@@ -2,6 +2,7 @@
 #define _ZENO_SPEC_SRC_TOKEN_H
 
 #include "src/base.h"
+#include "src/bigint.h"
 #include "src/io.h"
 
 #define SYMBOL_KIND_LIST(X)       \
@@ -127,7 +128,9 @@ typedef struct Token {
     SourcePos pos;
     TokenKind kind;
     union {
-        uint32_t integer; /* TODO: bigint */
+        /* Owned. */
+        BigInt integer;
+        /* Borrowed from Lexer. */
         StringRef string;
     } value;
 } Token;

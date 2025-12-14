@@ -31,6 +31,7 @@ V_ = @
 
 zeno_spec_objects = \
 	src/ast$(O) \
+	src/bigint$(O) \
 	src/base$(O) \
 	src/encoding$(O) \
 	src/format$(O) \
@@ -83,8 +84,8 @@ test: test-lex
 
 test-lex: test-lex-valid test-lex-invalid
 
-CHECK_LEX_VALID = ./$(zeno_spec_exe) --check-lex $(srcdir)/tests/lex/valid
-CHECK_LEX_INVALID = ./$(zeno_spec_exe) --check-lex-invalid $(srcdir)/tests/lex/invalid
+CHECK_LEX_VALID = $(Q)./$(zeno_spec_exe) --check-lex $(srcdir)/tests/lex/valid
+CHECK_LEX_INVALID = $(Q)./$(zeno_spec_exe) --check-lex-invalid $(srcdir)/tests/lex/invalid
 
 test-lex-valid: zeno-spec$(E)
 	$(CHECK_LEX_VALID)/bom.zn
@@ -92,18 +93,25 @@ test-lex-valid: zeno-spec$(E)
 	$(CHECK_LEX_VALID)/crlf.zn
 	$(CHECK_LEX_VALID)/tab.zn
 	$(CHECK_LEX_VALID)/tokens.zn
+	@echo "PASS lex-valid"
 
 test-lex-invalid: zeno-spec$(E)
 	$(CHECK_LEX_INVALID)/bad_utf8.zn
 	$(CHECK_LEX_INVALID)/bad_utf8_in_block_comment.zn
 	$(CHECK_LEX_INVALID)/bad_utf8_in_line_comment.zn
+	$(CHECK_LEX_INVALID)/binary_literal_extra_underscore.zn
+	$(CHECK_LEX_INVALID)/binary_literal_leading_underscore.zn
 	$(CHECK_LEX_INVALID)/binary_literal_no_value.zn
 	$(CHECK_LEX_INVALID)/binary_literal_trailing_junk.zn
 	$(CHECK_LEX_INVALID)/binary_literal_trailing_underscore.zn
+	$(CHECK_LEX_INVALID)/decimal_literal_extra_underscore.zn
 	$(CHECK_LEX_INVALID)/decimal_literal_leading_zero.zn
 	$(CHECK_LEX_INVALID)/decimal_literal_trailing_junk.zn
 	$(CHECK_LEX_INVALID)/decimal_literal_trailing_underscore.zn
+	$(CHECK_LEX_INVALID)/hex_literal_extra_underscore.zn
+	$(CHECK_LEX_INVALID)/hex_literal_leading_underscore.zn
 	$(CHECK_LEX_INVALID)/hex_literal_no_value.zn
 	$(CHECK_LEX_INVALID)/hex_literal_trailing_junk.zn
 	$(CHECK_LEX_INVALID)/hex_literal_trailing_underscore.zn
 	$(CHECK_LEX_INVALID)/unclosed_block_comment.zn
+	@echo "PASS lex-invalid"

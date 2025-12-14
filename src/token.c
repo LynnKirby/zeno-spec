@@ -46,7 +46,8 @@ void Token_dump(Token const* token, Writer* writer) {
 
     switch (token->kind) {
     case TokenKind_IntLiteral:
-        Writer_print(writer, ", value = %u", token->value.integer);
+        Writer_print(writer, ", value = ");
+        BigInt_write(writer, token->value.integer, 10);
         break;
 
     case TokenKind_Identifier:

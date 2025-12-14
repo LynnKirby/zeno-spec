@@ -30,7 +30,7 @@
     Item* item;
     Expr* expr;
     StringRef string;
-    uint32_t integer;
+    BigInt integer;
 }
 
 %type <item> Item

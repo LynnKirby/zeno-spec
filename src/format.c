@@ -20,32 +20,24 @@ typedef enum FormatOption {
 } FormatOption;
 
 static SystemIoError print_number(
-    Writer* writer, va_list args, int base, int width, FormatOption options
+    Writer* writer,
+    uintmax_t uvalue,
+    int has_minus,
+    int base,
+    int width,
+    FormatOption options
 ) {
-    uint8_t buf[32];
+    uint8_t buf[64];
     size_t size = 0;
     uint8_t* cursor;
-    unsigned uvalue;
-    int has_minus;
     int extra_zeroes;
+
+#if UINTMAX_MAX > UINT64_MAX
+    #error FIXME
+#endif
 
     cursor = buf + sizeof(buf);
     extra_zeroes = width;
-
-    if (options & FormatOption_IsSigned) {
-        int ivalue;
-        ivalue = va_arg(args, int);
-        if (ivalue < 0) {
-            uvalue = -(unsigned)ivalue;
-            has_minus = true;
-        } else {
-            uvalue = ivalue;
-            has_minus = false;
-        }
-    } else {
-        uvalue = va_arg(args, unsigned);
-        has_minus = false;
-    }
 
     for (;;) {
         uint8_t digit;
@@ -88,6 +80,30 @@ static SystemIoError print_number(
     }
 
     return WRITE(cursor, size);
+}
+
+static SystemIoError print_number_from_args(
+    Writer* writer, va_list args, int base, int width, FormatOption options
+) {
+    uintmax_t uvalue;
+    int has_minus;
+
+    if (options & FormatOption_IsSigned) {
+        intmax_t ivalue;
+        ivalue = va_arg(args, int);
+        if (ivalue < 0) {
+            uvalue = -(uintmax_t)ivalue;
+            has_minus = true;
+        } else {
+            uvalue = ivalue;
+            has_minus = false;
+        }
+    } else {
+        uvalue = va_arg(args, unsigned);
+        has_minus = false;
+    }
+
+    return print_number(writer, uvalue, has_minus, base, width, options);
 }
 
 static int try_parse_int(char const** p_format) {
@@ -164,12 +180,12 @@ loop:
 
     case 'i': case 'd':
         options |= FormatOption_IsSigned;
-        res = print_number(writer, args, 10, width, options);
+        res = print_number_from_args(writer, args, 10, width, options);
         format += 1;
         break;
 
     case 'u':
-        res = print_number(writer, args, 10, width, options);
+        res = print_number_from_args(writer, args, 10, width, options);
         format += 1;
         break;
 
@@ -177,7 +193,7 @@ loop:
         options |= FormatOption_Uppercase;
         /* fallthrough */
     case 'x':
-        res = print_number(writer, args, 16, width, options);
+        res = print_number_from_args(writer, args, 16, width, options);
         format += 1;
         break;
 
@@ -196,4 +212,26 @@ done:
     }
 
     return res;
+}
+
+SystemIoError Writer_write_int(Writer* writer, intmax_t value, int base) {
+    uintmax_t uvalue;
+
+    int has_minus;
+
+    if (value < 0) {
+        uvalue = -(uintmax_t)value;
+        has_minus = true;
+    } else {
+        uvalue = value;
+        has_minus = false;
+    }
+
+    return print_number(
+        writer, uvalue, has_minus, base, 0, FormatOption_Uppercase
+    );
+}
+
+SystemIoError Writer_write_uint(Writer* writer, intmax_t value, int base) {
+    return print_number(writer, value, false, base, 0, FormatOption_Uppercase);
 }

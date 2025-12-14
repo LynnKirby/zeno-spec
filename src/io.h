@@ -80,4 +80,10 @@ SystemIoError Writer_write_zstr(Writer* writer, char const* string);
 /** Write byte string. */
 SystemIoError Writer_write_bstr(Writer* writer, ByteStringRef string);
 
+/** Write signed integer. */
+SystemIoError Writer_write_int(Writer* writer, intmax_t value, int base);
+
+/** Write unsigned integer. */
+SystemIoError Writer_write_uint(Writer* writer, intmax_t value, int base);
+
 #endif

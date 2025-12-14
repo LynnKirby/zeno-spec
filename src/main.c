@@ -110,9 +110,9 @@ typedef enum DriverAction {
     DriverAction_DumpLex,
     DriverAction_CheckLex,
     DriverAction_CheckLexInvalid,
-    DriverAction_DumpSyntax,
-    DriverAction_CheckSyntax,
-    DriverAction_CheckSyntaxInvalid
+    DriverAction_DumpParse,
+    DriverAction_CheckParse,
+    DriverAction_CheckParseInvalid
 } DriverAction;
 
 static int lex_action(
@@ -167,20 +167,20 @@ static int syntax_action(
 
     switch (parse_result.kind) {
     case ParseResultKind_Success:
-        if (action == DriverAction_DumpSyntax) {
+        if (action == DriverAction_DumpParse) {
             Item_dump(parse_result.u.syntax, Writer_stdout);
-        } else if (action == DriverAction_CheckSyntaxInvalid) {
+        } else if (action == DriverAction_CheckParseInvalid) {
             res = 1;
         }
         break;
     case ParseResultKind_LexError:
-        if (action != DriverAction_CheckSyntaxInvalid) {
+        if (action != DriverAction_CheckParseInvalid) {
             print_lex_error(Writer_stderr, path, &parse_result.u.lex_error);
             res = 1;
         }
         break;
     case ParseResultKind_ParseError:
-        if (action != DriverAction_CheckSyntaxInvalid) {
+        if (action != DriverAction_CheckParseInvalid) {
             print_parse_error(Writer_stderr, path, &parse_result.u.parse_error);
             res = 1;
         }
@@ -226,16 +226,16 @@ int main(int argc, char const* const* argv) {
                 action = DriverAction_CheckLexInvalid;
                 continue;
             }
-            if (strcmp(arg, "--dump-syntax") == 0) {
-                action = DriverAction_DumpSyntax;
+            if (strcmp(arg, "--dump-parse") == 0) {
+                action = DriverAction_DumpParse;
                 continue;
             }
-            if (strcmp(arg, "--check-syntax") == 0) {
-                action = DriverAction_CheckSyntax;
+            if (strcmp(arg, "--check-parse") == 0) {
+                action = DriverAction_CheckParse;
                 continue;
             }
-            if (strcmp(arg, "--check-syntax-invalid") == 0) {
-                action = DriverAction_CheckSyntaxInvalid;
+            if (strcmp(arg, "--check-parse-invalid") == 0) {
+                action = DriverAction_CheckParseInvalid;
                 continue;
             }
             Writer_print(
@@ -326,9 +326,9 @@ int main(int argc, char const* const* argv) {
         case DriverAction_CheckLexInvalid:
             res = lex_action(file_ref, source, action);
             break;
-        case DriverAction_DumpSyntax:
-        case DriverAction_CheckSyntax:
-        case DriverAction_CheckSyntaxInvalid:
+        case DriverAction_DumpParse:
+        case DriverAction_CheckParse:
+        case DriverAction_CheckParseInvalid:
             res = syntax_action(file_ref, source, action);
             break;
         case DriverAction_Unknown:

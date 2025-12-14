@@ -46,7 +46,7 @@ ReturnExpr* ReturnExpr_new(AstContext* context, Expr* value) {
     return expr;
 }
 
-IntLiteralExpr* IntLiteralExpr_new(AstContext* context, uint32_t value) {
+IntLiteralExpr* IntLiteralExpr_new(AstContext* context, BigInt value) {
     IntLiteralExpr* expr;
     expr = Arena_allocate(&context->arena, sizeof(IntLiteralExpr));
     expr->base.kind = ExprKind_IntLiteral;
@@ -174,5 +174,7 @@ static void IntLiteralExpr_dump_internal(
     IntLiteralExpr const* item, Writer* writer, int indent
 ) {
     (void)indent; /* unused */
-    Writer_print(writer, "IntLiteralExpr(value = %u)", item->value);
+    Writer_print(writer, "IntLiteralExpr(value = ");
+    BigInt_write(writer, item->value, 10);
+    Writer_print(writer, ")");
 }

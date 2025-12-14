@@ -47,7 +47,7 @@ static void set_token_kind(LexResult* result, TokenKind kind) {
     result->u.token.kind = kind;
 }
 
-static void set_token_integer(LexResult* result, uint32_t integer) {
+static void set_token_integer(LexResult* result, BigInt integer) {
     result->u.token.value.integer = integer;
 }
 
@@ -130,17 +130,15 @@ static int is_id_continue(int32_t ch) {
         || (ch >= '0' && ch <= '9');
 }
 
-static int decode_number(int32_t ch, int base) {
-    int res = -1;
+static int is_digit(int32_t ch, int base) {
     if (ch >= '0' && ch <= '9') {
-        res = ch - '0';
+        return (ch - '0') < base;
     } else if (ch >= 'a' && ch <= 'z') {
-        res = ch - 'a' + 10;
+        return (ch - 'a' + 10) < base;
     } else if (ch >= 'A' && ch <= 'Z') {
-        res = ch - 'A' + 10;
+        return (ch - 'A' + 10) < base;
     }
-    if (res >= base) res = -1;
-    return res;
+    return false;
 }
 
 static TokenKind id_or_keyword(uint8_t const* data, size_t size) {
@@ -248,9 +246,8 @@ static int lex_block_comment(Lexer* lexer, LexResult* result) {
 }
 
 static void lex_number_literal(Lexer* lexer, LexResult* result) {
-    uint32_t value = 0;
     int base = 10;
-    int is_first_digit = false;
+    uint8_t const* digits_start;
 
     set_token_kind(result, TokenKind_IntLiteral);
 
@@ -267,7 +264,7 @@ static void lex_number_literal(Lexer* lexer, LexResult* result) {
             handle_normal_character(lexer, result);
         } else {
             lexer->cursor += 1;
-            set_token_integer(result, 0);
+            set_token_integer(result, BigInt_from_int(0));
             handle_normal_character(lexer, result);
             if (is_id_continue(lexer->cursor[0])) {
                 set_error(lexer, result, LexErrorKind_DecimalLeadingZero);
@@ -276,45 +273,59 @@ static void lex_number_literal(Lexer* lexer, LexResult* result) {
         }
 
         /* Base prefix but no value (example: `0x`) */
-        if (decode_number(lexer->cursor[0], base) < 0) {
+        if (!is_digit(lexer->cursor[0], base)) {
             set_error(lexer, result, LexErrorKind_BadIntLiteral);
             return;
         }
     }
 
-    for (;;) {
-        /* TODO: bigint */
-        int n;
-        int must_be_digit = false;
+    digits_start = lexer->cursor;
 
-        /* Skip underscores between digits. */
-        if (!is_first_digit) {
-            if (lexer->cursor[0] == '_') {
-                lexer->cursor += 1;
-                handle_normal_character(lexer, result);
-                must_be_digit = true;
-            }
+    for (;;) {
+        if (is_digit(lexer->cursor[0], base)) {
+            lexer->cursor += 1;
+            handle_normal_character(lexer, result);
+            continue;
         }
 
-        n = decode_number(lexer->cursor[0], base);
-
-        if (n < 0) {
-            if (must_be_digit) {
+        if (lexer->cursor[0] == '_') {
+            /* Leading underscore. */
+            if (digits_start == lexer->cursor) {
                 set_error(lexer, result, LexErrorKind_BadIntLiteral);
-            } else {
-                set_token_integer(result, value);
-                if (is_id_continue(lexer->cursor[0])) {
-                    set_error(lexer, result, LexErrorKind_BadIntLiteral);
-                }
+                return;
             }
+
+            /* Extra underscore. */
+            if (lexer->cursor[1] == '_') {
+                set_error(lexer, result, LexErrorKind_BadIntLiteral);
+                return;
+            }
+
+            lexer->cursor += 1;
+            handle_normal_character(lexer, result);
+            continue;
+        }
+
+        /* Junk that's not a digit or underscore. */
+        if (is_id_continue(lexer->cursor[0])) {
+            set_error(lexer, result, LexErrorKind_BadIntLiteral);
             return;
         }
 
-        lexer->cursor += 1;
-        handle_normal_character(lexer, result);
-        value *= base;
-        value += n;
-        is_first_digit = false;
+        break;
+    }
+
+    /* Trailing underscore. */
+    if (lexer->cursor[-1] == '_') {
+        set_error(lexer, result, LexErrorKind_BadIntLiteral);
+        return;
+    }
+
+    {
+        ByteStringRef digits;
+        digits.data = (char const*)digits_start;
+        digits.size = lexer->cursor - digits_start;
+        set_token_integer(result, BigInt_parse(digits, base));
     }
 }
 
@@ -346,7 +357,7 @@ loop:
         return true;
     }
 
-    if (decode_number(lexer->cursor[0], 10) >= 0) {
+    if (is_digit(lexer->cursor[0], 10)) {
         lex_number_literal(lexer, result);
         return true;
     }
