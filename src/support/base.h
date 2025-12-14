@@ -21,13 +21,6 @@
 #define true 1
 #define false 0
 
-/* Fixed-width integers */
-#if HAVE_C99 || HAVE_POSIX_2001
-    #include <stdint.h>
-#else
-    #error "implement me"
-#endif
-
 /* C99 inline.*/
 #if !HAVE_C99
     #if defined(__GNUC__)
