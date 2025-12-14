@@ -14,9 +14,6 @@
     #endif
 #endif
 
-/* Common includes */
-#include <stddef.h>
-
 /* Boolean constants */
 #define true 1
 #define false 0
