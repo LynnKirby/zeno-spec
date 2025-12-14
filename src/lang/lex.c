@@ -1,6 +1,6 @@
-#include "src/lex.h"
-#include "src/encoding.h"
-#include "src/limits.h"
+#include "src/lang/lex.h"
+#include "src/support/encoding.h"
+#include "src/lang/limits.h"
 
 #include <assert.h>
 #include <string.h>

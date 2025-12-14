@@ -30,16 +30,16 @@ V_ = @
 #
 
 zeno_spec_objects = \
-	src/ast$(O) \
-	src/bigint$(O) \
-	src/base$(O) \
-	src/encoding$(O) \
-	src/format$(O) \
-	src/io$(O) \
-	src/lex$(O) \
-	src/main$(O) \
-	src/parse.tab$(O) \
-	src/token$(O)
+	src/driver/main$(O) \
+	src/lang/ast$(O) \
+	src/lang/lex$(O) \
+	src/lang/parse.tab$(O) \
+	src/lang/token$(O) \
+	src/support/base$(O) \
+	src/support/bigint$(O) \
+	src/support/encoding$(O) \
+	src/support/format$(O) \
+	src/support/io$(O)
 
 zeno_spec_exe = zeno-spec$(E)
 
@@ -51,10 +51,12 @@ all: $(zeno_spec_exe)
 
 clean:
 	rm -f $(zeno_spec_exe) $(zeno_spec_objects)
-	rm -f src/parse.output src/parse.tab.c
-	rm -f src/*.d
+	rm -f src/lang/parse.output src/lang/parse.tab.c
+	rm -f src/driver/*.d src/lang/*.d src/support/*.d
 
--include src/*.d
+-include src/driver/*.d
+-include src/lang/*.d
+-include src/support/*.d
 
 #
 # zeno-spec executable targets
@@ -70,10 +72,10 @@ $(zeno_spec_exe): $(zeno_spec_objects)
 	$(Q)mkdir -p $(@D)
 	$(Q)$(CC) -c $(CFLAGS) $(CPPFLAGS) -I$(srcdir) -o $@ $<
 
-src/parse.tab.c: src/parse.y
+src/lang/parse.tab.c: src/lang/parse.y
 	@echo "YACC $@: $?"
 	$(Q)mkdir -p $(@D)
-	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/parse $?
+	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/lang/parse $?
 
 #
 # Tests

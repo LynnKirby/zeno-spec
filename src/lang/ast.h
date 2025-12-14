@@ -1,9 +1,9 @@
 #ifndef _ZENO_SPEC_SRC_AST_H
 #define _ZENO_SPEC_SRC_AST_H
 
-#include "src/base.h"
-#include "src/bigint.h"
-#include "src/io.h"
+#include "src/support/base.h"
+#include "src/support/bigint.h"
+#include "src/support/io.h"
 
 typedef struct AstContext {
     Arena arena;

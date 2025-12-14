@@ -1,8 +1,8 @@
-#ifndef _ZENO_SPEC_SRC_BIGINT_H
-#define _ZENO_SPEC_SRC_BIGINT_H
+#ifndef _ZENO_SPEC_SRC_SUPPORT_BIGINT_H
+#define _ZENO_SPEC_SRC_SUPPORT_BIGINT_H
 
-#include "src/base.h"
-#include "src/io.h"
+#include "src/support/base.h"
+#include "src/support/io.h"
 
 typedef struct BigInt {
 #if UINTPTR_MAX < UINT64_MAX

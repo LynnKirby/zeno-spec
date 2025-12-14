@@ -1,7 +1,7 @@
-#ifndef _ZENO_SPEC_SRC_ENCODING_H
-#define _ZENO_SPEC_SRC_ENCODING_H
+#ifndef _ZENO_SPEC_SRC_SUPPORT_ENCODING_H
+#define _ZENO_SPEC_SRC_SUPPORT_ENCODING_H
 
-#include "src/base.h"
+#include "src/support/base.h"
 
 #define U_EOF -1
 #define U_BAD -2

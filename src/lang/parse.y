@@ -10,7 +10,7 @@
 %parse-param {ParseContext* context}
 
 %code top {
-    #include "src/parse.h"
+    #include "src/lang/parse.h"
 
     typedef struct ParseContext {
         Lexer* lexer;
@@ -174,7 +174,7 @@ FunctionItemParams:
 
 %%
 
-#include "src/io.h"
+#include "src/support/io.h"
 
 #include <assert.h>
 #include <stdlib.h>

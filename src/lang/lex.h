@@ -1,8 +1,8 @@
 #ifndef _ZENO_SPEC_SRC_LEX_H
 #define _ZENO_SPEC_SRC_LEX_H
 
-#include "src/base.h"
-#include "src/token.h"
+#include "src/support/base.h"
+#include "src/lang/token.h"
 
 #include <setjmp.h>
 

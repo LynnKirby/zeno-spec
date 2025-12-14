@@ -1,9 +1,9 @@
 #ifndef _ZENO_SPEC_SRC_TOKEN_H
 #define _ZENO_SPEC_SRC_TOKEN_H
 
-#include "src/base.h"
-#include "src/bigint.h"
-#include "src/io.h"
+#include "src/support/base.h"
+#include "src/support/bigint.h"
+#include "src/support/io.h"
 
 #define SYMBOL_KIND_LIST(X)       \
     X(LeftParen, "(")             \

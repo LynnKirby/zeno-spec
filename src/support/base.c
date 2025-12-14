@@ -1,5 +1,5 @@
-#include "src/base.h"
-#include "src/io.h"
+#include "src/support/base.h"
+#include "src/support/io.h"
 
 #include <stdlib.h>
 

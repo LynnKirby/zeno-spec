@@ -1,6 +1,6 @@
-#include "src/io.h"
-#include "src/lex.h"
-#include "src/parse.h"
+#include "src/support/io.h"
+#include "src/lang/lex.h"
+#include "src/lang/parse.h"
 
 #include <assert.h>
 #include <stdlib.h>

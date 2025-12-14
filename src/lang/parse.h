@@ -1,8 +1,8 @@
 #ifndef _ZENO_SPEC_SRC_PARSE_H
 #define _ZENO_SPEC_SRC_PARSE_H
 
-#include "src/ast.h"
-#include "src/lex.h"
+#include "src/lang/ast.h"
+#include "src/lang/lex.h"
 
 typedef enum ParseResultKind {
     ParseResultKind_Success,

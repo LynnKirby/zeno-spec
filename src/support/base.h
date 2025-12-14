@@ -1,5 +1,5 @@
-#ifndef _ZENO_SPEC_SRC_BASE_H
-#define _ZENO_SPEC_SRC_BASE_H
+#ifndef _ZENO_SPEC_SRC_SUPPORT_BASE_H
+#define _ZENO_SPEC_SRC_SUPPORT_BASE_H
 
 /* Check Standard C version. */
 #ifdef __STDC_VERSION__

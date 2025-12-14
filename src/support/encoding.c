@@ -1,4 +1,4 @@
-#include "src/encoding.h"
+#include "src/support/encoding.h"
 
 #define is_utf8_continuation(byte) (((byte) & 0xC0) == 0x80)
 

@@ -1,5 +1,5 @@
-#include "src/bigint.h"
-#include "src/io.h"
+#include "src/support/bigint.h"
+#include "src/support/io.h"
 
 #include <assert.h>
 #include <stdlib.h>
