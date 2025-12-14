@@ -2,7 +2,6 @@
 #define _ZENO_SPEC_SRC_LEX_H
 
 #include "src/lang/token.h"
-#include "src/support/base.h"
 #include "src/support/stdint.h"
 #include "src/support/string_ref.h"
 

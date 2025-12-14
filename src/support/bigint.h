@@ -1,7 +1,6 @@
 #ifndef _ZENO_SPEC_SRC_SUPPORT_BIGINT_H
 #define _ZENO_SPEC_SRC_SUPPORT_BIGINT_H
 
-#include "src/support/base.h"
 #include "src/support/io.h"
 #include "src/support/stdint.h"
 #include "src/support/string_ref.h"
