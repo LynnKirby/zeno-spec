@@ -23,6 +23,9 @@
 %code provides {
     static void yyerror(ParseContext* context, char const* message);
     static int yylex(YYSTYPE* value, ParseContext* context);
+
+    static void success(ParseContext* context, Item* item);
+    static void unexpected_character(ParseContext* context);
 }
 
 %union {
@@ -131,11 +134,9 @@
  * Items
  */
 
-File: Item
-    {
-        context->result->kind = ParseResultKind_Success;
-        context->result->u.syntax = $1;
-    }
+File:
+      Item  { success(context, $1); }
+    | error { unexpected_character(context); YYABORT; }
 
 Item: FunctionItem { $$ = $1; }
 
@@ -186,21 +187,28 @@ FunctionItemParams:
 #include <stdlib.h>
 #include <string.h>
 
+static void success(ParseContext* context, Item* item) {
+    context->result->kind = ParseResultKind_Success;
+    context->result->u.syntax = item;
+}
+
+static void unexpected_character(ParseContext* context) {
+    ParseError* error;
+    Token* token;
+
+    context->result->kind = ParseResultKind_ParseError;
+
+    token = &context->tokens->data[context->token_index - 1];
+    error = &context->result->u.parse_error;
+
+    error->token_pos = token->pos;
+    error->token_kind = token->kind;
+}
+
 static void yyerror(ParseContext* context, char const* message) {
-    /* HACK: detect syntax error versus other errors by matching on the
-     * message. */
-    if (strncmp(message, "syntax error", 12) == 0) {
-        assert(context->token_index > 0);
-        context->result->kind = ParseResultKind_ParseError;
-        context->result->u.parse_error.token_pos =
-            context->tokens->data[context->token_index - 1].pos;
-        context->result->u.parse_error.token_kind =
-            context->tokens->data[context->token_index - 1].kind;
-    } else {
-        context->result->kind = ParseResultKind_YaccError;
-        context->result->u.yacc_error.data = message;
-        context->result->u.yacc_error.size = strlen(message);
-    }
+    context->result->kind = ParseResultKind_YaccError;
+    context->result->u.yacc_error.data = message;
+    context->result->u.yacc_error.size = strlen(message);
 }
 
 static int yylex(YYSTYPE* value, ParseContext* context) {

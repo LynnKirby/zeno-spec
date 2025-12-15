@@ -21,7 +21,6 @@ typedef struct ParseResult {
     union {
         Item* syntax;
         ParseError parse_error;
-        LexError lex_error;
         ByteStringRef yacc_error;
     } u;
 } ParseResult;

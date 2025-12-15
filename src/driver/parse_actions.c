@@ -26,7 +26,7 @@ static int parse_action(
     lex_bytes(&lex_result, source, NULL);
 
     if (!lex_result.is_tokens) {
-        write_lex_error(Writer_stderr, path, &parse_result.u.lex_error);
+        write_lex_error(Writer_stderr, path, &lex_result.u.error);
         return 1;
     }
 
