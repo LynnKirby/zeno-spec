@@ -211,17 +211,14 @@ Type:
  */
 
 ReturnType:
-      ThinArrow Type { $$ = $2; }
-    | error { EXPECTED(ReturnType, @$); }
+    ThinArrow Type { $$ = $2; }
 
 FunctionItem:
     Def Identifier FunctionItemParams ReturnType Block
     { $$ = (Item*)FunctionItem_new(context->ast, $2, $4, $5); }
 
 FunctionItemParams:
-      LeftParen RightParen
-    | error { EXPECTED(Params, @$); }
-
+    LeftParen RightParen
 
 %%
 

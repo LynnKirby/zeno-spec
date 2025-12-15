@@ -15,9 +15,7 @@ typedef enum ParseResultKind {
     X(Item, "item")             \
     X(Stmt, "statement")        \
     X(Expr, "expression")       \
-    X(Type, "type")             \
-    X(Params, "parameter list") \
-    X(ReturnType, "return type")
+    X(Type, "type")
 
 typedef enum SyntaxCategory {
     #define X(name, str) SyntaxCategory_##name,
