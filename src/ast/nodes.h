@@ -1,19 +1,9 @@
-#ifndef _ZENO_SPEC_SRC_AST_H
-#define _ZENO_SPEC_SRC_AST_H
+#ifndef _ZENO_SPEC_SRC_AST_NODES_H
+#define _ZENO_SPEC_SRC_AST_NODES_H
 
-#include "src/support/arena.h"
+#include "src/ast/context.h"
 #include "src/support/bigint.h"
-#include "src/support/io.h"
 #include "src/support/string_ref.h"
-#include "src/support/string_set.h"
-
-typedef struct AstContext {
-    Arena arena;
-    StringSet strings;
-} AstContext;
-
-void AstContext_init(AstContext* context);
-void AstContext_destroy(AstContext* context);
 
 #define ITEM_KIND_LIST(X) \
     X(Function)
@@ -70,7 +60,7 @@ typedef struct Decl {
 
 struct FunctionItem {
     Item base;
-    StringSetItem name;
+    AstString name;
     Expr* body;
     Expr* return_type;
     Decl const* decl;
@@ -88,30 +78,19 @@ struct IntLiteralExpr {
 
 struct IdentifierExpr {
     Expr base;
-    StringSetItem value;
+    AstString value;
     Decl const* referent;
 };
 
 FunctionItem* FunctionItem_new(
-    AstContext* context,
+    AstContext* ast,
     StringRef name,
     Expr* return_type,
     Expr* body
 );
 
-ReturnExpr* ReturnExpr_new(AstContext* context, Expr* value);
-IntLiteralExpr* IntLiteralExpr_new(AstContext* context, BigInt value);
-IdentifierExpr* IdentifierExpr_new(AstContext* context, StringRef value);
-
-void Item_dump(Item const* item, Writer* writer);
-void Expr_dump(Expr const* expr, Writer* writer);
-
-#define X(name) void name##Item_dump(name##Item const* item, Writer* writer);
-ITEM_KIND_LIST(X)
-#undef X
-
-#define X(name) void name##Expr_dump(name##Expr const* expr, Writer* writer);
-EXPR_KIND_LIST(X)
-#undef X
+ReturnExpr* ReturnExpr_new(AstContext* ast, Expr* value);
+IntLiteralExpr* IntLiteralExpr_new(AstContext* ast, BigInt value);
+IdentifierExpr* IdentifierExpr_new(AstContext* ast, StringRef value);
 
 #endif

@@ -33,9 +33,9 @@ lib_objects = \
 	src/driver/diagnostics$(O) \
 	src/driver/lex_actions$(O) \
 	src/driver/parse_actions$(O) \
-	src/lang/ast$(O) \
-	src/lang/ast_dump$(O) \
-	src/lang/ast_new$(O) \
+	src/ast/context$(O) \
+	src/ast/dump$(O) \
+	src/ast/nodes$(O) \
 	src/lang/binding_generation$(O) \
 	src/lang/binding_resolution$(O) \
 	src/lang/lex$(O) \
@@ -48,8 +48,7 @@ lib_objects = \
 	src/support/hash_map$(O) \
 	src/support/io$(O) \
 	src/support/malloc$(O) \
-	src/support/string_ref$(O) \
-	src/support/string_set$(O)
+	src/support/string_ref$(O)
 
 zeno_spec_objects = \
 	$(lib_objects) \
@@ -75,8 +74,9 @@ clean:
 	$(Q)rm -f $(zeno_spec_exe) src/driver/main$(O)
 	$(Q)rm -f $(hash_map_test_exe) src/support/hash_map_test$(O)
 	$(Q)rm -f src/lang/parse.output src/lang/parse.tab.c
-	$(Q)rm -f src/driver/*.d src/lang/*.d src/support/*.d
+	$(Q)rm -f src/ast/*.d src/driver/*.d src/lang/*.d src/support/*.d
 
+-include src/ast/*.d
 -include src/driver/*.d
 -include src/lang/*.d
 -include src/support/*.d

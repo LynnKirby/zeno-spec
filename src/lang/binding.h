@@ -1,7 +1,9 @@
 #ifndef _ZENOC_SRC_LANG_BINDING_H
 #define _ZENOC_SRC_LANG_BINDING_H
 
-#include "src/lang/ast.h"
+#include "src/ast/context.h"
+#include "src/ast/nodes.h"
+#include "src/support/string_ref.h"
 #include "src/support/source_pos.h"
 
 typedef enum SymbolBindingResultKind {

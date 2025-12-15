@@ -1,4 +1,5 @@
 #include "src/driver/actions.h"
+#include "src/ast/dump.h"
 #include "src/driver/diagnostics.h"
 #include "src/lang/binding.h"
 #include "src/lang/lex.h"
@@ -19,7 +20,7 @@ static int parse_action(
     ByteStringRef path, ByteStringRef source, DriverAction action
 ) {
     int res = 0;
-    AstContext context;
+    AstContext* context;
     LexResult lex_result;
     ParseResult parse_result;
 
@@ -30,8 +31,9 @@ static int parse_action(
         return 1;
     }
 
-    AstContext_init(&context);
-    parse(&parse_result, &context, &lex_result.u.tokens);
+    context = AstContext_new();
+
+    parse(&parse_result, context, &lex_result.u.tokens);
     xfree(lex_result.u.tokens.data);
 
     switch (parse_result.kind) {
@@ -58,7 +60,7 @@ static int parse_action(
     if (res == 0 && is_binding_action(action)) {
         SymbolBindingResult binding_result;
         symbol_binding(
-            &binding_result, &context, (FunctionItem*)parse_result.u.syntax
+            &binding_result, context, (FunctionItem*)parse_result.u.syntax
         );
 
         switch (binding_result.kind) {
@@ -78,7 +80,7 @@ static int parse_action(
         }
     }
 
-    AstContext_destroy(&context);
+    AstContext_delete(context);
     return res;
 }
 

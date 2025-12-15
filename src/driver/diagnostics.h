@@ -1,7 +1,6 @@
 #ifndef _ZENO_SPEC_SRC_DRIVER_DIAGNOSTICS_H
 #define _ZENO_SPEC_SRC_DRIVER_DIAGNOSTICS_H
 
-#include "src/lang/ast.h"
 #include "src/lang/parse.h"
 #include "src/lang/token.h"
 #include "src/support/io.h"

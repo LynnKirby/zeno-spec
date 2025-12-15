@@ -1,4 +1,4 @@
-#include "src/lang/ast.h"
+#include "src/ast/dump.h"
 
 static void Item_dump_internal(Item const* item, Writer* writer, int indent);
 
@@ -72,7 +72,7 @@ static void FunctionItem_dump_internal(
 
     write_indent(writer, indent);
     Writer_format(writer, "name = \"");
-    Writer_write_str(writer, item->name.string);
+    Writer_write_str(writer, item->name.value);
     Writer_format(writer, "\",\n");
 
     if (item->body != NULL) {
@@ -127,6 +127,6 @@ static void IdentifierExpr_dump_internal(
 ) {
     (void)indent; /* unused */
     Writer_format(writer, "IdentifierExpr(value = \"");
-    Writer_write_str(writer, expr->value.string);
+    Writer_write_str(writer, expr->value.value);
     Writer_format(writer, "\")");
 }

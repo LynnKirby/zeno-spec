@@ -1,7 +1,7 @@
 #ifndef _ZENO_SPEC_SRC_PARSE_H
 #define _ZENO_SPEC_SRC_PARSE_H
 
-#include "src/lang/ast.h"
+#include "src/ast/nodes.h"
 #include "src/lang/token.h"
 #include "src/support/string_ref.h"
 

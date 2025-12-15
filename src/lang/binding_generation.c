@@ -2,13 +2,13 @@
 
 #include <assert.h>
 
-static void SymGen_Expr(AstContext* context, Expr* expr);
+static void SymGen_Expr(AstContext* ast, Expr* expr);
 
-static void SymGen_Expr(AstContext* context, Expr* expr) {
+static void SymGen_Expr(AstContext* ast, Expr* expr) {
     switch (expr->kind) {
     /* SymGenExpr-Return */
     case ExprKind_Return:
-        SymGen_Expr(context, ((ReturnExpr*)expr)->value);
+        SymGen_Expr(ast, ((ReturnExpr*)expr)->value);
         break;
 
     /* SymGenExpr-Literal */
@@ -21,18 +21,18 @@ static void SymGen_Expr(AstContext* context, Expr* expr) {
     }
 }
 
-static void SymGenItem_Function(AstContext* context, FunctionItem* item) {
+static void SymGenItem_Function(AstContext* ast, FunctionItem* item) {
     Decl* decl;
 
     assert(item->decl == NULL);
 
-    decl = Arena_allocate(&context->arena, sizeof(Decl));
+    decl = AstContext_allocate(ast, sizeof(Decl));
     decl->kind = DeclKind_FunctionItem;
     item->decl = decl;
 
-    SymGen_Expr(context, item->body);
+    SymGen_Expr(ast, item->body);
 }
 
-void symbol_generation(AstContext* context, FunctionItem* root) {
-    SymGenItem_Function(context, root);
+void symbol_generation(AstContext* ast, FunctionItem* root) {
+    SymGenItem_Function(ast, root);
 }

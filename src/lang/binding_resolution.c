@@ -1,5 +1,4 @@
 #include "src/lang/binding.h"
-#include "src/support/fnv1a.h"
 #include "src/support/hash_map.h"
 #include "src/support/malloc.h"
 
@@ -16,10 +15,10 @@ typedef struct SymbolEnv {
 } SymbolEnv;
 
 static HashMapConfig const map_config = HASH_MAP_CONFIG(
-    StringSetItem,
+    AstString,
     Decl const*,
-    StringSetItem_hash_generic,
-    StringSetItem_equal_generic
+    AstString_hash_generic,
+    AstString_equal_generic
 );
 
 static void SymbolEnv_push_scope(SymbolEnv* env) {
@@ -59,12 +58,12 @@ static void SymbolEnv_destroy(SymbolEnv* env) {
 }
 
 static void SymbolEnv_add(
-    SymbolEnv* env, StringSetItem name, Decl const* decl
+    SymbolEnv* env, AstString name, Decl const* decl
 ) {
     HashMap_set(&env->top->map, &map_config, &name, &decl);
 }
 
-Decl const* SymResEnv_get(SymbolEnv const* env, StringSetItem name) {
+Decl const* SymResEnv_get(SymbolEnv const* env, AstString name) {
     SymbolEnvNode* node;
     node = env->top;
 
@@ -108,7 +107,7 @@ static void SymResExpr_Identifier(
     }
 
     error = &context->result->u.undefined_identifier;
-    error->value = expr->value.string;
+    error->value = expr->value.value;
     error->pos.line = 0;
     error->pos.column = 0;
 
@@ -152,7 +151,7 @@ void symbol_resolution(
     SymResContext context;
 
     Decl int32_decl;
-    StringSetItem int32_name;
+    AstString int32_name;
     static StringRef int32_ref = STATIC_STRING_REF("Int32");
 
     context.ast = ast;
@@ -160,7 +159,7 @@ void symbol_resolution(
     SymbolEnv_init(&context.env);
     result->kind = SymbolBindingResultKind_Success;
 
-    int32_name = StringSet_add(&ast->strings, int32_ref);
+    int32_name = AstContext_add_string(ast, int32_ref);
     int32_decl.kind = DeclKind_BuiltinInt;
     SymbolEnv_add(&context.env, int32_name, &int32_decl);
 
