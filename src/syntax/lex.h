@@ -1,9 +1,10 @@
 #ifndef _ZENO_SPEC_SRC_SYNTAX_LEX_H
 #define _ZENO_SPEC_SRC_SYNTAX_LEX_H
 
+#include "src/ast/context.h"
 #include "src/ast/source.h"
-#include "src/syntax/token.h"
 #include "src/support/stdint.h"
+#include "src/syntax/token.h"
 
 #include <setjmp.h>
 
@@ -19,8 +20,11 @@ typedef struct LexResult {
     } u;
 } LexResult;
 
-void lex_bytes(
-    LexResult* result, SourceFile const* source, LexerConfig const* config
+void lex_source(
+    LexResult* result,
+    AstContext* ast,
+    SourceFile const* source,
+    LexerConfig const* config
 );
 
 #endif

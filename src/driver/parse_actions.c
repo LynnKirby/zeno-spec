@@ -25,7 +25,7 @@ static int parse_action(
     StringRef path;
 
     path = SourceFile_path(source).value;
-    lex_bytes(&lex_result, source, NULL);
+    lex_source(&lex_result, ast, source, NULL);
 
     if (!lex_result.is_tokens) {
         write_lex_error(Writer_stderr, path, &lex_result.u.error);

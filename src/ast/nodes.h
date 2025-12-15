@@ -2,8 +2,8 @@
 #define _ZENO_SPEC_SRC_AST_NODES_H
 
 #include "src/ast/context.h"
+#include "src/ast/string.h"
 #include "src/support/bigint.h"
-#include "src/support/string_ref.h"
 
 #define ITEM_KIND_LIST(X) \
     X(Function)
@@ -84,13 +84,13 @@ struct IdentifierExpr {
 
 FunctionItem* FunctionItem_new(
     AstContext* ast,
-    StringRef name,
+    AstString name,
     Expr* return_type,
     Expr* body
 );
 
 ReturnExpr* ReturnExpr_new(AstContext* ast, Expr* value);
 IntLiteralExpr* IntLiteralExpr_new(AstContext* ast, BigInt value);
-IdentifierExpr* IdentifierExpr_new(AstContext* ast, StringRef value);
+IdentifierExpr* IdentifierExpr_new(AstContext* ast, AstString value);
 
 #endif

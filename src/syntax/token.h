@@ -1,11 +1,11 @@
 #ifndef _ZENO_SPEC_SRC_SYNTAX_TOKEN_H
 #define _ZENO_SPEC_SRC_SYNTAX_TOKEN_H
 
+#include "src/ast/string.h"
 #include "src/support/bigint.h"
 #include "src/support/io.h"
 #include "src/support/source_pos.h"
 #include "src/support/stdint.h"
-#include "src/support/string_ref.h"
 
 #define SYMBOL_KIND_LIST(X)       \
     X(LeftParen, "(")             \
@@ -125,10 +125,8 @@ typedef struct Token {
     SourcePos pos;
     TokenKind kind;
     union {
-        /* Owned. */
         BigInt integer;
-        /* Borrowed from Lexer. */
-        StringRef string;
+        AstString string;
     } value;
 } Token;
 

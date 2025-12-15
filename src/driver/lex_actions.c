@@ -21,7 +21,7 @@ static int lex_action(
     StringRef path;
 
     path = SourceFile_path(source).value;
-    lex_bytes(&lex_result, source, NULL);
+    lex_source(&lex_result, ast, source, NULL);
 
     if (lex_result.is_tokens) {
         if (action == DriverAction_DumpLex) {

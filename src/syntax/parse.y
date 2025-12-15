@@ -63,7 +63,7 @@
 %union {
     Item* item;
     Expr* expr;
-    StringRef string;
+    AstString string;
     BigInt integer;
 }
 

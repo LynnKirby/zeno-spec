@@ -1,12 +1,12 @@
 #include "src/ast/nodes.h"
 
 FunctionItem* FunctionItem_new(
-    AstContext* ast, StringRef name, Expr* return_type, Expr* body
+    AstContext* ast, AstString name, Expr* return_type, Expr* body
 ) {
     FunctionItem* item;
     item = AstContext_allocate(ast, sizeof(FunctionItem));
     item->base.kind = ItemKind_Function;
-    item->name = AstContext_add_string(ast, name);
+    item->name = name;
     item->body = body;
     item->return_type = return_type;
     item->decl = NULL;
@@ -29,11 +29,11 @@ IntLiteralExpr* IntLiteralExpr_new(AstContext* ast, BigInt value) {
     return expr;
 }
 
-IdentifierExpr* IdentifierExpr_new(AstContext* ast, StringRef value) {
+IdentifierExpr* IdentifierExpr_new(AstContext* ast, AstString value) {
     IdentifierExpr* expr;
     expr = AstContext_allocate(ast, sizeof(IdentifierExpr));
     expr->base.kind = ExprKind_Identifier;
-    expr->value = AstContext_add_string(ast, value);
+    expr->value = value;
     expr->referent = NULL;
     return expr;
 }

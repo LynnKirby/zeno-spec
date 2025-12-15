@@ -52,7 +52,7 @@ void Token_dump(Token const* token, Writer* writer) {
 
     case TokenKind_Identifier:
         Writer_format(writer, ", value = \"");
-        Writer_write_str(writer, token->value.string);
+        Writer_write_str(writer, token->value.string.value);
         Writer_format(writer, "\"");
         break;
 

@@ -7,6 +7,7 @@
 #include <string.h>
 
 typedef struct LexContext {
+    AstContext* ast;
     LexerConfig config;
 
     uint8_t const* cursor;
@@ -59,7 +60,8 @@ static void push_string_token(
     LexContext* context, TokenKind kind, StringRef string
 ) {
     push_token(context, kind);
-    context->tokens_data[context->tokens_size - 1].value.string = string;
+    context->tokens_data[context->tokens_size - 1].value.string =
+        AstContext_add_string(context->ast, string);
 }
 
 static void exit_with_character_error(
@@ -587,11 +589,15 @@ loop:
  * Init
  */
 
-void lex_bytes(
-    LexResult* result, SourceFile const* source, LexerConfig const* config
+void lex_source(
+    LexResult* result,
+    AstContext* ast,
+    SourceFile const* source,
+    LexerConfig const* config
 ) {
     LexContext context;
 
+    context.ast = ast;
     context.cursor = SourceFile_data(source);
     context.limit = context.cursor + SourceFile_size(source);
     context.cursor_pos.line = 1;
