@@ -22,11 +22,13 @@ static int parse_action(
     int res = 0;
     LexResult lex_result;
     ParseResult parse_result;
+    StringRef path;
 
+    path = SourceFile_path(source).value;
     lex_bytes(&lex_result, source, NULL);
 
     if (!lex_result.is_tokens) {
-        write_lex_error(Writer_stderr, source->path.value, &lex_result.u.error);
+        write_lex_error(Writer_stderr, path, &lex_result.u.error);
         return 1;
     }
 
@@ -43,9 +45,7 @@ static int parse_action(
         break;
     case ParseResultKind_ParseError:
         if (action != DriverAction_CheckParseInvalid) {
-            write_parse_error(
-                Writer_stderr, source->path.value, &parse_result.u.parse_error
-            );
+            write_parse_error(Writer_stderr, path, &parse_result.u.parse_error);
             res = 1;
         }
         break;
@@ -71,9 +71,7 @@ static int parse_action(
         case SymbolBindingResultKind_UndefinedIdentifier:
             if (action != DriverAction_CheckBindingInvalid) {
                 write_undefined_identifier_error(
-                    Writer_stderr,
-                    source->path.value,
-                    &binding_result.u.undefined_identifier
+                    Writer_stderr, path, &binding_result.u.undefined_identifier
                 );
                 res = 1;
             }

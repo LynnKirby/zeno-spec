@@ -6,10 +6,12 @@
 
 /** Source file owned by an AstContext.
  * `data` is nul-terminated (`data[size] == 0`). */
-typedef struct SourceFile {
-    AstString path;
-    uint8_t const* data;
-    size_t size;
-} SourceFile;
+typedef struct SourceFile SourceFile;
+
+uint8_t const* SourceFile_data(SourceFile const* source);
+
+size_t SourceFile_size(SourceFile const* source);
+
+AstString SourceFile_path(SourceFile const* source);
 
 #endif

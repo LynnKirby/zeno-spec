@@ -33,6 +33,7 @@ lib_objects = \
 	src/ast/context$(O) \
 	src/ast/dump$(O) \
 	src/ast/nodes$(O) \
+	src/ast/source$(O) \
 	src/ast/string$(O) \
 	src/driver/diagnostics$(O) \
 	src/driver/lex_actions$(O) \

@@ -18,7 +18,9 @@ static int lex_action(
 ) {
     int lex_okay = true;
     LexResult lex_result;
+    StringRef path;
 
+    path = SourceFile_path(source).value;
     lex_bytes(&lex_result, source, NULL);
 
     if (lex_result.is_tokens) {
@@ -28,9 +30,7 @@ static int lex_action(
         xfree(lex_result.u.tokens.data);
     } else {
         if (action != DriverAction_CheckLexInvalid) {
-            write_lex_error(
-                Writer_stderr, source->path.value, &lex_result.u.error
-            );
+            write_lex_error(Writer_stderr, path, &lex_result.u.error);
         }
         lex_okay = false;
     }

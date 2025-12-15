@@ -1,4 +1,5 @@
 #include "src/ast/context.h"
+#include "src/ast/source_internal.h"
 #include "src/support/arena.h"
 #include "src/support/hash_map.h"
 #include "src/support/malloc.h"

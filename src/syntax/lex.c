@@ -592,8 +592,8 @@ void lex_bytes(
 ) {
     LexContext context;
 
-    context.cursor = (uint8_t const*)source->data;
-    context.limit = context.cursor + source->size;
+    context.cursor = SourceFile_data(source);
+    context.limit = context.cursor + SourceFile_size(source);
     context.cursor_pos.line = 1;
     context.cursor_pos.column = 1;
     context.total_characters = 0;
