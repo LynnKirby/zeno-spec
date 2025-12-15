@@ -9,4 +9,12 @@
 #define xallocarray(n, m) xreallocarray(NULL, (n), (m))
 void* xreallocarray(void* p, size_t n, size_t m);
 
+void* ensure_array_capacity(
+    size_t item_size,
+    void* data,
+    size_t* size,
+    size_t* capacity,
+    size_t extra_capacity
+);
+
 #endif

@@ -2,12 +2,11 @@
 #define _ZENO_SPEC_SRC_PARSE_H
 
 #include "src/lang/ast.h"
-#include "src/lang/lex.h"
+#include "src/lang/token.h"
 #include "src/support/string_ref.h"
 
 typedef enum ParseResultKind {
     ParseResultKind_Success,
-    ParseResultKind_LexError,
     ParseResultKind_ParseError,
     ParseResultKind_YaccError
 } ParseResultKind;
@@ -27,6 +26,6 @@ typedef struct ParseResult {
     } u;
 } ParseResult;
 
-void parse(ParseResult* result, AstContext* context, Lexer* lexer);
+void parse(ParseResult* result, AstContext* context, TokenList const* tokens);
 
 #endif

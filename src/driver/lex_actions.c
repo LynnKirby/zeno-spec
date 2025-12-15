@@ -2,8 +2,16 @@
 #include "src/driver/diagnostics.h"
 #include "src/lang/lex.h"
 #include "src/support/io.h"
+#include "src/support/malloc.h"
 
 #include <assert.h>
+
+static void dump_token_list(TokenList tokens) {
+    size_t i;
+    for (i = 0; i < tokens.size; i += 1) {
+        Token_dump(&tokens.data[i], Writer_stdout);
+    }
+}
 
 static int lex_action(
     ByteStringRef path,
@@ -11,26 +19,21 @@ static int lex_action(
     DriverAction action
 ) {
     int lex_okay = true;
-    Lexer lexer;
     LexResult lex_result;
 
-    Lexer_init(&lexer, source, NULL);
+    lex_bytes(&lex_result, source, NULL);
 
-    while (Lexer_next(&lexer, &lex_result)) {
-        if (lex_result.is_token) {
-            if (action == DriverAction_DumpLex) {
-                Token_dump(&lex_result.u.token, Writer_stdout);
-            }
-        } else {
-            if (action != DriverAction_CheckLexInvalid) {
-                write_lex_error(Writer_stderr, path, &lex_result.u.error);
-            }
-            lex_okay = false;
-            break;
+    if (lex_result.is_tokens) {
+        if (action == DriverAction_DumpLex) {
+            dump_token_list(lex_result.u.tokens);
         }
+        xfree(lex_result.u.tokens.data);
+    } else {
+        if (action != DriverAction_CheckLexInvalid) {
+            write_lex_error(Writer_stderr, path, &lex_result.u.error);
+        }
+        lex_okay = false;
     }
-
-    Lexer_destroy(&lexer);
 
     switch (action) {
     case DriverAction_DumpLex:

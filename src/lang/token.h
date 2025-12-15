@@ -132,6 +132,12 @@ typedef struct Token {
     } value;
 } Token;
 
+
+typedef struct TokenList {
+    Token* data;
+    size_t size;
+} TokenList;
+
 void Token_dump(Token const* token, Writer* writer);
 
 #endif

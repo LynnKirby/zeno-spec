@@ -118,9 +118,9 @@ $(hash_map_test_exe): $(hash_map_test_objects)
 #
 
 # TODO: an actual test framework
-test: test-lex test-hash-map
+test: test-lex test-binding test-hash-map
 
-test-lex: test-lex-valid test-lex-invalid test-binding-invalid
+test-lex: test-lex-valid test-lex-invalid
 
 CHECK_LEX_VALID = $(Q)./$(zeno_spec_exe) --check-lex $(srcdir)/tests/lex/valid
 CHECK_LEX_INVALID = $(Q)./$(zeno_spec_exe) --check-lex-invalid $(srcdir)/tests/lex/invalid
@@ -154,6 +154,8 @@ test-lex-invalid: $(zeno_spec_exe)
 	$(CHECK_LEX_INVALID)/hex_literal_trailing_junk.zn
 	$(CHECK_LEX_INVALID)/hex_literal_trailing_underscore.zn
 	$(CHECK_LEX_INVALID)/unclosed_block_comment.zn
+
+test-binding: test-binding-invalid
 
 test-binding-invalid: $(zeno_spec_exe)
 	@echo "TEST binding-invalid"

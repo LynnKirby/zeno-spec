@@ -13,11 +13,10 @@
     #include "src/lang/parse.h"
 
     typedef struct ParseContext {
-        Lexer* lexer;
+        TokenList const* tokens;
+        size_t token_index;
         AstContext* ast;
         ParseResult* result;
-        SourcePos last_token_pos;
-        TokenKind last_token_kind;
     } ParseContext;
 }
 
@@ -49,9 +48,6 @@
 
 /* Set to 0 so that EndOfFile == YYEOF */
 %token EndOfFile 0
-
-/* Returned by yylex to exit the parser loop. */
-%token ExitYacc
 
 %token <string> Identifier
 %token <integer> IntLiteral
@@ -191,16 +187,15 @@ FunctionItemParams:
 #include <string.h>
 
 static void yyerror(ParseContext* context, char const* message) {
-    if (context->result->kind == ParseResultKind_LexError) {
-        return;
-    }
-
     /* HACK: detect syntax error versus other errors by matching on the
      * message. */
     if (strncmp(message, "syntax error", 12) == 0) {
+        assert(context->token_index > 0);
         context->result->kind = ParseResultKind_ParseError;
-        context->result->u.parse_error.token_pos = context->last_token_pos;
-        context->result->u.parse_error.token_kind = context->last_token_kind;
+        context->result->u.parse_error.token_pos =
+            context->tokens->data[context->token_index - 1].pos;
+        context->result->u.parse_error.token_kind =
+            context->tokens->data[context->token_index - 1].kind;
     } else {
         context->result->kind = ParseResultKind_YaccError;
         context->result->u.yacc_error.data = message;
@@ -209,46 +204,40 @@ static void yyerror(ParseContext* context, char const* message) {
 }
 
 static int yylex(YYSTYPE* value, ParseContext* context) {
-    LexResult result;
+    Token const* token;
 
-    if (!Lexer_next(context->lexer, &result)) {
-        assert(0 && "unreachable");
-    }
+    assert(context->token_index < context->tokens->size);
+    token = &context->tokens->data[context->token_index];
+    context->token_index += 1;
 
-    if (!result.is_token) {
-        context->result->kind = ParseResultKind_LexError;
-        context->result->u.lex_error = result.u.error;
-        return ExitYacc;
-    }
-
-    context->last_token_kind = result.u.token.kind;
-    context->last_token_pos = result.u.token.pos;
-
-    switch (result.u.token.kind) {
+    switch (token->kind) {
     case TokenKind_Identifier:
-        value->string = result.u.token.value.string;
+        value->string = token->value.string;
         break;
     case TokenKind_IntLiteral:
-        value->integer = result.u.token.value.integer;
+        value->integer = token->value.integer;
         break;
     default:
         break;
     }
 
     /* Translate TokenKind to Yacc token value. */
-    switch (result.u.token.kind) {
+    switch (token->kind) {
     #define X(name, str) case TokenKind_##name: return name;
     TOKEN_KIND_LIST(X)
     #undef X
     default:
         assert(0 && "unreachable");
-        return ExitYacc;
+        return YYEOF;
     }
 }
 
-void parse(ParseResult* result, AstContext* context, Lexer* lexer) {
+void parse(ParseResult* result, AstContext* context, TokenList const* tokens) {
     ParseContext parse_context;
-    parse_context.lexer = lexer;
+    assert(tokens->size > 0);
+    assert(tokens->data[tokens->size - 1].kind == TokenKind_EndOfFile);
+    parse_context.tokens = tokens;
+    parse_context.token_index = 0;
     parse_context.result = result;
     parse_context.ast = context;
     yyparse(&parse_context);

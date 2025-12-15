@@ -1,123 +1,136 @@
 #include "src/lang/lex.h"
-#include "src/support/encoding.h"
 #include "src/lang/limits.h"
+#include "src/support/encoding.h"
+#include "src/support/malloc.h"
 
 #include <assert.h>
 #include <string.h>
 
-void Lexer_init(Lexer* lexer, ByteStringRef source, LexerConfig const* config) {
-    /* Must be nul-terminated. */
-    assert(source.size > 0);
-    assert(source.data[source.size - 1] == 0);
+typedef struct LexContext {
+    LexerConfig config;
 
-    lexer->done = false;
-    lexer->cursor = (uint8_t const*)source.data;
-    lexer->limit = lexer->cursor + source.size - 1;
-    lexer->cursor_pos.line = 1;
-    lexer->cursor_pos.column = 1;
-    lexer->total_characters = 0;
+    uint8_t const* cursor;
+    uint8_t const* limit;
 
-    if (config == NULL) {
-        lexer->config.tab_stop = 8;
-    } else {
-        lexer->config = *config;
-    }
+    SourcePos token_pos;
+    SourcePos cursor_pos;
 
-    /* Skip byte order mark. */
-    if (
-        lexer->cursor[0] == 0xEF
-        && lexer->cursor[1] == 0xBB
-        && lexer->cursor[2] == 0xBF
-    ) {
-        lexer->cursor += 3;
-        lexer->total_characters += 1;
-    }
+    uint32_t characters_in_line;
+    uint32_t total_characters;
+
+    jmp_buf exit_jmp_buf;
+
+    /* Success result */
+    Token* tokens_data;
+    size_t tokens_size;
+    size_t tokens_capacity;
+
+    /* Error result */
+    LexError error;
+} LexContext;
+
+static void sync_token_pos_to_cursor(LexContext* context) {
+    context->token_pos = context->cursor_pos;
 }
 
-void Lexer_destroy(Lexer* lexer) {
-    (void)lexer; /* unused */
-    /* Currently no-op. */
+static void push_token(LexContext* context, TokenKind kind) {
+    Token* token;
+    context->tokens_data = ensure_array_capacity(
+        sizeof(Token),
+        context->tokens_data,
+        &context->tokens_size,
+        &context->tokens_capacity,
+        1
+    );
+    token = &context->tokens_data[context->tokens_size];
+    context->tokens_size += 1;
+    token->kind = kind;
+    token->pos = context->token_pos;
 }
 
-static void sync_token_pos_to_cursor(Lexer* lexer, LexResult* result) {
-    result->u.token.pos = lexer->cursor_pos;
+static void push_integer_token(
+    LexContext* context, TokenKind kind, BigInt integer
+) {
+    push_token(context, kind);
+    context->tokens_data[context->tokens_size - 1].value.integer = integer;
 }
 
-static void set_token_kind(LexResult* result, TokenKind kind) {
-    result->u.token.kind = kind;
+static void push_string_token(
+    LexContext* context, TokenKind kind, StringRef string
+) {
+    push_token(context, kind);
+    context->tokens_data[context->tokens_size - 1].value.string = string;
 }
 
-static void set_token_integer(LexResult* result, BigInt integer) {
-    result->u.token.value.integer = integer;
+static void exit_with_character_error(
+    LexContext* context, LexErrorKind error, int32_t character
+) {
+    context->error.kind = error;
+    context->error.pos = context->token_pos;
+    context->error.value.character = character;
+
+    longjmp(context->exit_jmp_buf, 1);
 }
 
-static void set_token_string(LexResult* result, StringRef string) {
-    result->u.token.value.string = string;
+static void exit_with_error(LexContext* context, LexErrorKind error) {
+    context->error.kind = error;
+    context->error.pos = context->token_pos;
+
+    longjmp(context->exit_jmp_buf, 1);
 }
 
-static void set_error(Lexer* lexer, LexResult* result, LexErrorKind error) {
-    SourcePos pos;
+static void increment_line(LexContext* context) {
+    context->cursor_pos.line += 1;
+    context->cursor_pos.column = 1;
+    context->characters_in_line = 0;
 
-    pos = result->u.token.pos;
-
-    result->is_token = false;
-    result->u.error.pos = pos;
-    result->u.error.kind = error;
-
-    lexer->done = true;
-}
-
-static void increment_line(Lexer* lexer, LexResult* result) {
-    lexer->cursor_pos.line += 1;
-    lexer->cursor_pos.column = 1;
-    lexer->characters_in_line = 0;
-
-    if (lexer->cursor_pos.line > MAX_LINES_PER_FILE) {
-        sync_token_pos_to_cursor(lexer, result);
-        set_error(lexer, result, LexErrorKind_LineLimitExceeded);
-        longjmp(lexer->exit_jmp_buf, 1);
-    }
-}
-
-static void handle_invisible_character(Lexer* lexer, LexResult* result) {
-    lexer->characters_in_line += 1;
-    lexer->total_characters += 1;
-
-    if (lexer->characters_in_line > MAX_CHARACTERS_PER_LINE) {
-        sync_token_pos_to_cursor(lexer, result);
-        set_error(lexer, result, LexErrorKind_ColumnLimitExceeded);
-        longjmp(lexer->exit_jmp_buf, 1);
-    }
-
-    if (lexer->total_characters > MAX_CHARACTERS_PER_FILE) {
-        sync_token_pos_to_cursor(lexer, result);
-        set_error(lexer, result, LexErrorKind_CharacterLimitExceeded);
-        longjmp(lexer->exit_jmp_buf, 1);
+    if (context->cursor_pos.line > MAX_LINES_PER_FILE) {
+        sync_token_pos_to_cursor(context);
+        exit_with_error(context, LexErrorKind_LineLimitExceeded);
     }
 }
 
-static void handle_normal_character(Lexer* lexer, LexResult* result) {
-    lexer->cursor_pos.column += 1;
-    handle_invisible_character(lexer, result);
+static void handle_invisible_character(LexContext* context) {
+    context->characters_in_line += 1;
+    context->total_characters += 1;
+
+    if (context->characters_in_line > MAX_CHARACTERS_PER_LINE) {
+        sync_token_pos_to_cursor(context);
+        exit_with_error(context, LexErrorKind_ColumnLimitExceeded);
+    }
+
+    if (context->total_characters > MAX_CHARACTERS_PER_FILE) {
+        sync_token_pos_to_cursor(context);
+        exit_with_error(context, LexErrorKind_CharacterLimitExceeded);
+    }
 }
 
-static void handle_tab(Lexer* lexer, LexResult* result) {
-    lexer->cursor_pos.column +=
-        lexer->config.tab_stop
-        - (lexer->cursor_pos.column % lexer->config.tab_stop);
-    handle_invisible_character(lexer, result);
+static void handle_normal_character(LexContext* context) {
+    context->cursor_pos.column += 1;
+    handle_invisible_character(context);
 }
 
-static void handle_crlf_line_terminator(Lexer* lexer, LexResult* result) {
-    handle_invisible_character(lexer, result);
-    handle_invisible_character(lexer, result);
-    increment_line(lexer, result);
+static void handle_tab(LexContext* context) {
+    context->cursor_pos.column +=
+        context->config.tab_stop
+        - (context->cursor_pos.column % context->config.tab_stop);
+    handle_invisible_character(context);
 }
 
-static void handle_line_terminator(Lexer* lexer, LexResult* result) {
-    handle_invisible_character(lexer, result);
-    increment_line(lexer, result);
+static void handle_crlf_line_terminator(LexContext* context) {
+    handle_invisible_character(context);
+    handle_invisible_character(context);
+    increment_line(context);
 }
+
+static void handle_line_terminator(LexContext* context) {
+    handle_invisible_character(context);
+    increment_line(context);
+}
+
+/*
+ * Classification
+ */
 
 static int is_id_start(int32_t ch) {
     return (ch >= 'a' && ch <= 'z')
@@ -151,164 +164,171 @@ static TokenKind id_or_keyword(uint8_t const* data, size_t size) {
     return TokenKind_Identifier;
 }
 
-static int lex_line_comment(Lexer* lexer, LexResult* result) {
+/*
+ * Comments
+ */
+
+static int lex_line_comment(LexContext* context) {
     uint8_t const* cursor;
-    (void)result; /* unused */
 
-    assert(lexer->cursor[0] == '/');
-    assert(lexer->cursor[1] == '/');
-    lexer->cursor += 2;
-    handle_normal_character(lexer, result);
-    handle_normal_character(lexer, result);
+    assert(context->cursor[0] == '/');
+    assert(context->cursor[1] == '/');
+    context->cursor += 2;
+    handle_normal_character(context);
+    handle_normal_character(context);
 
-    cursor = lexer->cursor;
+    cursor = context->cursor;
 
     for (;;) {
         int32_t ch;
-        ch = utf8_decode(&cursor, lexer->limit);
+        ch = utf8_decode(&cursor, context->limit);
         if (ch == '\r' || ch == '\n' || ch == U_EOF) {
             break;
         }
         if (ch == U_BAD) {
-            sync_token_pos_to_cursor(lexer, result);
-            set_error(lexer, result, LexErrorKind_BadEncoding);
+            sync_token_pos_to_cursor(context);
+            exit_with_error(context, LexErrorKind_BadEncoding);
             return false;
         }
-        lexer->cursor = cursor;
-        handle_normal_character(lexer, result);
+        context->cursor = cursor;
+        handle_normal_character(context);
     }
 
     return true;
 }
 
-static int lex_block_comment(Lexer* lexer, LexResult* result) {
+static int lex_block_comment(LexContext* context) {
     uint8_t const* cursor;
     unsigned nesting;
 
-    assert(lexer->cursor[0] == '/');
-    assert(lexer->cursor[1] == '*');
-    lexer->cursor += 2;
-    handle_normal_character(lexer, result);
-    handle_normal_character(lexer, result);
+    assert(context->cursor[0] == '/');
+    assert(context->cursor[1] == '*');
+    context->cursor += 2;
+    handle_normal_character(context);
+    handle_normal_character(context);
 
-    cursor = lexer->cursor;
+    cursor = context->cursor;
     nesting = 1;
 
     while (nesting > 0) {
         int32_t ch;
-        ch = utf8_decode(&cursor, lexer->limit);
+        ch = utf8_decode(&cursor, context->limit);
         switch (ch) {
         case U_EOF:
-            sync_token_pos_to_cursor(lexer, result);
-            set_error(lexer, result, LexErrorKind_UnclosedBlockComment);
+            sync_token_pos_to_cursor(context);
+            exit_with_error(context, LexErrorKind_UnclosedBlockComment);
             return false;
         case U_BAD:
-            sync_token_pos_to_cursor(lexer, result);
-            set_error(lexer, result, LexErrorKind_BadEncoding);
+            sync_token_pos_to_cursor(context);
+            exit_with_error(context, LexErrorKind_BadEncoding);
             return false;
         case '\r':
             if (cursor[0] == '\n') {
                 cursor += 1;
-                handle_crlf_line_terminator(lexer, result);
+                handle_crlf_line_terminator(context);
                 break;
             }
             /* fallthrough */
         case '\n':
-            handle_line_terminator(lexer, result);
+            handle_line_terminator(context);
             break;
         case '\t':
-            handle_tab(lexer, result);
+            handle_tab(context);
             break;
         case '*':
             if (cursor[0] == '/') {
                 nesting -= 1;
                 cursor += 1;
-                handle_normal_character(lexer, result);
-                handle_normal_character(lexer, result);
+                handle_normal_character(context);
+                handle_normal_character(context);
             }
             break;
         case '/':
             if (cursor[0] == '*') {
                 nesting += 1;
                 cursor += 1;
-                handle_normal_character(lexer, result);
-                handle_normal_character(lexer, result);
+                handle_normal_character(context);
+                handle_normal_character(context);
             }
             break;
         default:
-            handle_normal_character(lexer, result);
+            handle_normal_character(context);
             break;
         }
-        lexer->cursor = cursor;
+        context->cursor = cursor;
     }
 
     return true;
 }
 
-static void lex_number_literal(Lexer* lexer, LexResult* result) {
+/*
+ * Number literal
+ */
+
+static void lex_number_literal(LexContext* context) {
     int base = 10;
     uint8_t const* digits_start;
 
-    set_token_kind(result, TokenKind_IntLiteral);
-
-    if (lexer->cursor[0] == '0') {
-        if (lexer->cursor[1] == 'x' || lexer->cursor[1] == 'X') {
-            lexer->cursor += 2;
-            handle_normal_character(lexer, result);
-            handle_normal_character(lexer, result);
+    if (context->cursor[0] == '0') {
+        if (context->cursor[1] == 'x' || context->cursor[1] == 'X') {
+            context->cursor += 2;
+            handle_normal_character(context);
+            handle_normal_character(context);
             base = 16;
-        } else if (lexer->cursor[1] == 'b' || lexer->cursor[1] == 'B') {
+        } else if (context->cursor[1] == 'b' || context->cursor[1] == 'B') {
             base = 2;
-            lexer->cursor += 2;
-            handle_normal_character(lexer, result);
-            handle_normal_character(lexer, result);
+            context->cursor += 2;
+            handle_normal_character(context);
+            handle_normal_character(context);
         } else {
-            lexer->cursor += 1;
-            set_token_integer(result, BigInt_from_int(0));
-            handle_normal_character(lexer, result);
-            if (is_id_continue(lexer->cursor[0])) {
-                set_error(lexer, result, LexErrorKind_DecimalLeadingZero);
+            context->cursor += 1;
+            push_integer_token(
+                context, TokenKind_IntLiteral, BigInt_from_int(0)
+            );
+            handle_normal_character(context);
+            if (is_id_continue(context->cursor[0])) {
+                exit_with_error(context, LexErrorKind_DecimalLeadingZero);
             }
             return;
         }
 
         /* Base prefix but no value (example: `0x`) */
-        if (!is_digit(lexer->cursor[0], base)) {
-            set_error(lexer, result, LexErrorKind_BadIntLiteral);
+        if (!is_digit(context->cursor[0], base)) {
+            exit_with_error(context, LexErrorKind_BadIntLiteral);
             return;
         }
     }
 
-    digits_start = lexer->cursor;
+    digits_start = context->cursor;
 
     for (;;) {
-        if (is_digit(lexer->cursor[0], base)) {
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
+        if (is_digit(context->cursor[0], base)) {
+            context->cursor += 1;
+            handle_normal_character(context);
             continue;
         }
 
-        if (lexer->cursor[0] == '_') {
+        if (context->cursor[0] == '_') {
             /* Leading underscore. */
-            if (digits_start == lexer->cursor) {
-                set_error(lexer, result, LexErrorKind_BadIntLiteral);
+            if (digits_start == context->cursor) {
+                exit_with_error(context, LexErrorKind_BadIntLiteral);
                 return;
             }
 
             /* Extra underscore. */
-            if (lexer->cursor[1] == '_') {
-                set_error(lexer, result, LexErrorKind_BadIntLiteral);
+            if (context->cursor[1] == '_') {
+                exit_with_error(context, LexErrorKind_BadIntLiteral);
                 return;
             }
 
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
+            context->cursor += 1;
+            handle_normal_character(context);
             continue;
         }
 
         /* Junk that's not a digit or underscore. */
-        if (is_id_continue(lexer->cursor[0])) {
-            set_error(lexer, result, LexErrorKind_BadIntLiteral);
+        if (is_id_continue(context->cursor[0])) {
+            exit_with_error(context, LexErrorKind_BadIntLiteral);
             return;
         }
 
@@ -316,214 +336,211 @@ static void lex_number_literal(Lexer* lexer, LexResult* result) {
     }
 
     /* Trailing underscore. */
-    if (lexer->cursor[-1] == '_') {
-        set_error(lexer, result, LexErrorKind_BadIntLiteral);
+    if (context->cursor[-1] == '_') {
+        exit_with_error(context, LexErrorKind_BadIntLiteral);
         return;
     }
 
     {
         ByteStringRef digits;
         digits.data = (char const*)digits_start;
-        digits.size = lexer->cursor - digits_start;
-        set_token_integer(result, BigInt_parse(digits, base));
+        digits.size = context->cursor - digits_start;
+        push_integer_token(
+            context, TokenKind_IntLiteral, BigInt_parse(digits, base)
+        );
     }
 }
 
-static int next(Lexer* lexer, LexResult* result) {
-    if (lexer->done) {
-        return false;
-    }
+/*
+ * Basic
+ */
 
+static void lex_bytes_inner(LexContext* context) {
 loop:
-    result->is_token = true;
-    sync_token_pos_to_cursor(lexer, result);
+    sync_token_pos_to_cursor(context);
 
-    if (is_id_start(lexer->cursor[0])) {
+    if (is_id_start(context->cursor[0])) {
         uint8_t const* start;
         TokenKind kind;
-        start = lexer->cursor;
-        while (is_id_continue(lexer->cursor[0])) {
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
+        start = context->cursor;
+        while (is_id_continue(context->cursor[0])) {
+            context->cursor += 1;
+            handle_normal_character(context);
         }
-        kind = id_or_keyword(start, lexer->cursor - start);
-        set_token_kind(result, kind);
+        kind = id_or_keyword(start, context->cursor - start);
         if (kind == TokenKind_Identifier) {
             StringRef string;
             string.data = start;
-            string.size = lexer->cursor - start;
-            set_token_string(result, string);
+            string.size = context->cursor - start;
+            push_string_token(context, TokenKind_Identifier, string);
+        } else {
+            push_token(context, kind);
         }
-        return true;
+        goto loop;
     }
 
-    if (is_digit(lexer->cursor[0], 10)) {
-        lex_number_literal(lexer, result);
-        return true;
+    if (is_digit(context->cursor[0], 10)) {
+        lex_number_literal(context);
+        goto loop;
     }
 
-    switch (lexer->cursor[0]) {
+    switch (context->cursor[0]) {
     case ' ':
-        lexer->cursor += 1;
-        handle_normal_character(lexer, result);
+        context->cursor += 1;
+        handle_normal_character(context);
         goto loop;
 
     case '\t':
-        lexer->cursor += 1;
-        handle_tab(lexer, result);
+        context->cursor += 1;
+        handle_tab(context);
         goto loop;
 
     case '\r':
-        if (lexer->cursor[1] == '\n') {
-            lexer->cursor += 1;
-            handle_crlf_line_terminator(lexer, result);
+        if (context->cursor[1] == '\n') {
+            context->cursor += 1;
+            handle_crlf_line_terminator(context);
             goto loop;
         }
         /* fallthrough */
     case '\n':
-        lexer->cursor += 1;
-        handle_line_terminator(lexer, result);
+        context->cursor += 1;
+        handle_line_terminator(context);
         goto loop;
 
     case 0:
         /* Check if EOF or embedded nul. */
-        if (lexer->cursor == lexer->limit) {
-            lexer->done = true;
-            set_token_kind(result, TokenKind_EndOfFile);
-            return true;
+        if (context->cursor == context->limit) {
+            push_token(context, TokenKind_EndOfFile);
+            return;
         }
         break;
 
     case '.':
-        lexer->cursor += 1;
-        handle_normal_character(lexer, result);
-        if (lexer->cursor[0] == '.') {
-            if (lexer->cursor[1] == '.') {
-                lexer->cursor += 2;
-                handle_normal_character(lexer, result);
-                handle_normal_character(lexer, result);
-                set_token_kind(result, TokenKind_ClosedRange);
-                return true;
+        context->cursor += 1;
+        handle_normal_character(context);
+        if (context->cursor[0] == '.') {
+            if (context->cursor[1] == '.') {
+                context->cursor += 2;
+                handle_normal_character(context);
+                handle_normal_character(context);
+                push_token(context, TokenKind_ClosedRange);
+                goto loop;
             }
-            if (lexer->cursor[1] == '<') {
-                lexer->cursor += 2;
-                handle_normal_character(lexer, result);
-                handle_normal_character(lexer, result);
-                set_token_kind(result, TokenKind_HalfOpenRange);
-                return true;
+            if (context->cursor[1] == '<') {
+                context->cursor += 2;
+                handle_normal_character(context);
+                handle_normal_character(context);
+                push_token(context, TokenKind_HalfOpenRange);
+                goto loop;
             }
         }
-        set_token_kind(result, TokenKind_Period);
-        return true;
+        push_token(context, TokenKind_Period);
+        goto loop;
 
     case '=':
-        lexer->cursor += 1;
-        handle_normal_character(lexer, result);
-        switch (lexer->cursor[0]) {
+        context->cursor += 1;
+        handle_normal_character(context);
+        switch (context->cursor[0]) {
         case '=':
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
-            set_token_kind(result, TokenKind_EqualEqual);
+            context->cursor += 1;
+            handle_normal_character(context);
+            push_token(context, TokenKind_EqualEqual);
             break;
         case '>':
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
-            set_token_kind(result, TokenKind_FatArrow);
+            context->cursor += 1;
+            handle_normal_character(context);
+            push_token(context, TokenKind_FatArrow);
             break;
         default:
-            set_token_kind(result, TokenKind_Equal);
+            push_token(context, TokenKind_Equal);
             break;
         }
-        return true;
+        goto loop;
 
     case '-':
-        lexer->cursor += 1;
-        handle_normal_character(lexer, result);
-        switch (lexer->cursor[0]) {
+        context->cursor += 1;
+        handle_normal_character(context);
+        switch (context->cursor[0]) {
         case '=':
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
-            set_token_kind(result, TokenKind_MinusEqual);
+            context->cursor += 1;
+            handle_normal_character(context);
+            push_token(context, TokenKind_MinusEqual);
             break;
         case '>':
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
-            set_token_kind(result, TokenKind_ThinArrow);
+            context->cursor += 1;
+            handle_normal_character(context);
+            push_token(context, TokenKind_ThinArrow);
             break;
         default:
-            set_token_kind(result, TokenKind_Minus);
+            push_token(context, TokenKind_Minus);
             break;
         }
-        return true;
+        goto loop;
 
     case '/':
-        switch (lexer->cursor[1]) {
+        switch (context->cursor[1]) {
         case '*':
-            if (lex_block_comment(lexer, result)) {
-                goto loop;
-            }
+            lex_block_comment(context);
             break;
         case '/':
-            if (lex_line_comment(lexer, result)) {
-                goto loop;
-            }
+            lex_line_comment(context);
             break;
         case '=':
-            lexer->cursor += 2;
-            handle_normal_character(lexer, result);
-            handle_normal_character(lexer, result);
-            set_token_kind(result, TokenKind_SlashEqual);
+            context->cursor += 2;
+            handle_normal_character(context);
+            handle_normal_character(context);
+            push_token(context, TokenKind_SlashEqual);
             break;
         default:
-            lexer->cursor += 1;
-            handle_normal_character(lexer, result);
-            set_token_kind(result, TokenKind_Slash);
+            context->cursor += 1;
+            handle_normal_character(context);
+            push_token(context, TokenKind_Slash);
             break;
         }
-        return true;
+        goto loop;
 
-    #define SYMBOL_X(ch, name)                        \
-        case ch:                                      \
-            lexer->cursor += 1;                       \
-            handle_normal_character(lexer, result);   \
-            set_token_kind(result, TokenKind_##name); \
-            return true;
+    #define SYMBOL_X(ch, name)                     \
+        case ch:                                   \
+            context->cursor += 1;                  \
+            handle_normal_character(context);      \
+            push_token(context, TokenKind_##name); \
+            goto loop;
 
-    #define SYMBOL_XE(ch, name)                                  \
-        case ch:                                                 \
-            lexer->cursor += 1;                                  \
-            handle_normal_character(lexer, result);              \
-            if (lexer->cursor[0] == '=') {                       \
-                lexer->cursor += 1;                              \
-                handle_normal_character(lexer, result);          \
-                set_token_kind(result, TokenKind_##name##Equal); \
-            } else {                                             \
-                set_token_kind(result, TokenKind_##name);        \
-            }                                                    \
-            return true;
+    #define SYMBOL_XE(ch, name)                               \
+        case ch:                                              \
+            context->cursor += 1;                             \
+            handle_normal_character(context);                 \
+            if (context->cursor[0] == '=') {                  \
+                context->cursor += 1;                         \
+                handle_normal_character(context);             \
+                push_token(context, TokenKind_##name##Equal); \
+            } else {                                          \
+                push_token(context, TokenKind_##name);        \
+            }                                                 \
+            goto loop;
 
-    #define SYMBOL_XXE(ch, name)                                           \
-        case ch:                                                           \
-            lexer->cursor += 1;                                            \
-            handle_normal_character(lexer, result);                        \
-            if (lexer->cursor[0] == ch) {                                  \
-                lexer->cursor += 1;                                        \
-                handle_normal_character(lexer, result);                    \
-                if (lexer->cursor[0] == '=') {                             \
-                    lexer->cursor += 1;                                    \
-                    handle_normal_character(lexer, result);                \
-                    set_token_kind(result, TokenKind_##name##name##Equal); \
-                } else {                                                   \
-                    set_token_kind(result, TokenKind_##name##name);        \
-                }                                                          \
-            } else if (lexer->cursor[0] == '=') {                          \
-                lexer->cursor += 1;                                        \
-                handle_normal_character(lexer, result);                    \
-                set_token_kind(result, TokenKind_##name##Equal);           \
-            } else {                                                       \
-                set_token_kind(result, TokenKind_##name);                  \
-            }                                                              \
-            return true;
+    #define SYMBOL_XXE(ch, name)                                        \
+        case ch:                                                        \
+            context->cursor += 1;                                       \
+            handle_normal_character(context);                           \
+            if (context->cursor[0] == ch) {                             \
+                context->cursor += 1;                                   \
+                handle_normal_character(context);                       \
+                if (context->cursor[0] == '=') {                        \
+                    context->cursor += 1;                               \
+                    handle_normal_character(context);                   \
+                    push_token(context, TokenKind_##name##name##Equal); \
+                } else {                                                \
+                    push_token(context, TokenKind_##name##name);        \
+                }                                                       \
+            } else if (context->cursor[0] == '=') {                     \
+                context->cursor += 1;                                   \
+                handle_normal_character(context);                       \
+                push_token(context, TokenKind_##name##Equal);           \
+            } else {                                                    \
+                push_token(context, TokenKind_##name);                  \
+            }                                                           \
+            goto loop;
 
     SYMBOL_X('(', LeftParen)
     SYMBOL_X(')', RightParen)
@@ -555,21 +572,60 @@ loop:
 
     {
         int32_t ch;
-        ch = utf8_decode(&lexer->cursor, lexer->limit);
+        ch = utf8_decode(&context->cursor, context->limit);
         if (ch == U_BAD) {
-            set_error(lexer, result, LexErrorKind_BadEncoding);
+            exit_with_error(context, LexErrorKind_BadEncoding);
         } else {
-            set_error(lexer, result, LexErrorKind_UnexpectedCharacter);
-            result->u.error.value.character = ch;
+            exit_with_character_error(
+                context, LexErrorKind_UnexpectedCharacter, ch
+            );
         }
     }
-
-    return true;
 }
 
-int Lexer_next(Lexer* lexer, LexResult* result) {
-    if (setjmp(lexer->exit_jmp_buf)) {
-        return true;
+/*
+ * Init
+ */
+
+void lex_bytes(
+    LexResult* result, ByteStringRef source, LexerConfig const* config
+) {
+    LexContext context;
+
+    /* Must be nul-terminated. */
+    assert(source.size > 0);
+    assert(source.data[source.size - 1] == 0);
+
+    context.cursor = (uint8_t const*)source.data;
+    context.limit = context.cursor + source.size - 1;
+    context.cursor_pos.line = 1;
+    context.cursor_pos.column = 1;
+    context.total_characters = 0;
+
+    if (config == NULL) {
+        context.config.tab_stop = 8;
+    } else {
+        context.config = *config;
     }
-    return next(lexer, result);
+
+    /* Skip byte order mark. */
+    if (
+        context.cursor[0] == 0xEF
+        && context.cursor[1] == 0xBB
+        && context.cursor[2] == 0xBF
+    ) {
+        context.cursor += 3;
+        context.total_characters += 1;
+    }
+
+    if (setjmp(context.exit_jmp_buf) == 0) {
+        lex_bytes_inner(&context);
+        result->is_tokens = true;
+        result->u.tokens.data = context.tokens_data;
+        result->u.tokens.size = context.tokens_size;
+    } else {
+        xfree(context.tokens_data);
+        result->is_tokens = false;
+        result->u.error = context.error;
+    }
 }

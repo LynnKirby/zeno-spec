@@ -3,6 +3,7 @@
 #include "src/lang/binding.h"
 #include "src/lang/lex.h"
 #include "src/lang/parse.h"
+#include "src/support/malloc.h"
 
 static int is_binding_action(DriverAction action) {
     switch (action) {
@@ -19,25 +20,25 @@ static int parse_action(
 ) {
     int res = 0;
     AstContext context;
-    Lexer lexer;
+    LexResult lex_result;
     ParseResult parse_result;
 
-    AstContext_init(&context);
-    Lexer_init(&lexer, source, NULL);
+    lex_bytes(&lex_result, source, NULL);
 
-    parse(&parse_result, &context, &lexer);
+    if (!lex_result.is_tokens) {
+        write_lex_error(Writer_stderr, path, &parse_result.u.lex_error);
+        return 1;
+    }
+
+    AstContext_init(&context);
+    parse(&parse_result, &context, &lex_result.u.tokens);
+    xfree(lex_result.u.tokens.data);
 
     switch (parse_result.kind) {
     case ParseResultKind_Success:
         if (action == DriverAction_DumpParse) {
             Item_dump(parse_result.u.syntax, Writer_stdout);
         } else if (action == DriverAction_CheckParseInvalid) {
-            res = 1;
-        }
-        break;
-    case ParseResultKind_LexError:
-        if (action != DriverAction_CheckParseInvalid) {
-            write_lex_error(Writer_stderr, path, &parse_result.u.lex_error);
             res = 1;
         }
         break;
@@ -77,7 +78,6 @@ static int parse_action(
         }
     }
 
-    Lexer_destroy(&lexer);
     AstContext_destroy(&context);
     return res;
 }
