@@ -6,6 +6,7 @@
 %start File
 
 %define api.pure full
+%locations
 %lex-param {ParseContext* context}
 %parse-param {ParseContext* context}
 
@@ -18,14 +19,45 @@
         AstContext* ast;
         ParseResult* result;
     } ParseContext;
+
+    /* Our location type is the token index. */
+    #define YYLTYPE uint32_t
+
+    /* Set the location of non-terminals to the first token. */
+    #define YYLLOC_DEFAULT(loc, rhs, n) \
+        do {                            \
+            (loc) = YYRHSLOC(rhs, 1);   \
+        } while (0)
 }
 
 %code provides {
-    static void yyerror(ParseContext* context, char const* message);
-    static int yylex(YYSTYPE* value, ParseContext* context);
+    /* Give a nicer name to this builtin type. */
+    typedef YYSTYPE YaccValue;
+
+    static void yyerror(
+        uint32_t* loc,
+        ParseContext* context,
+        char const* message
+    );
+
+    static int yylex(
+        YaccValue* value,
+        uint32_t* loc,
+        ParseContext* context
+    );
 
     static void success(ParseContext* context, Item* item);
-    static void unexpected_character(ParseContext* context);
+    static void expected(
+        ParseContext* context, SyntaxCategory category, uint32_t token_index
+    );
+
+    #define SUCCESS(result) success(context, (result))
+
+    #define EXPECTED(category, index)                              \
+        do {                                                       \
+            expected(context, SyntaxCategory_##category, (index)); \
+            YYABORT;                                               \
+        } while (0)
 }
 
 %union {
@@ -47,7 +79,7 @@
 
 %type <expr> Type
 
-%type <expr> FunctionItemParams
+%type <expr> ReturnType
 
 /* Set to 0 so that EndOfFile == YYEOF */
 %token EndOfFile 0
@@ -134,11 +166,11 @@
  * Items
  */
 
-File:
-      Item  { success(context, $1); }
-    | error { unexpected_character(context); YYABORT; }
+File: Item { SUCCESS($1); }
 
-Item: FunctionItem { $$ = $1; }
+Item:
+      FunctionItem { $$ = $1; }
+    | error { EXPECTED(Item, @$); }
 
 /*
  * Statements
@@ -146,7 +178,9 @@ Item: FunctionItem { $$ = $1; }
 
 Block: LeftCurly Stmt Semicolon RightCurly { $$ = $2; }
 
-Stmt: ReturnStmt { $$ = $1; }
+Stmt:
+      ReturnStmt { $$ = $1; }
+    | error { EXPECTED(Stmt, @$); }
 
 ReturnStmt:
     Return Expr
@@ -156,7 +190,9 @@ ReturnStmt:
  * Expressions
  */
 
-Expr: PrimaryExpr { $$ = $1; }
+Expr:
+      PrimaryExpr { $$ = $1; }
+    | error { EXPECTED(Expr, @$); }
 
 PrimaryExpr:
       IntLiteral { $$ = (Expr*)IntLiteralExpr_new(context->ast, $1); }
@@ -166,18 +202,26 @@ PrimaryExpr:
  * Type expressions
  */
 
-Type: Identifier { $$ = (Expr*)IdentifierExpr_new(context->ast, $1); }
+Type:
+      Identifier { $$ = (Expr*)IdentifierExpr_new(context->ast, $1); }
+    | error { EXPECTED(Type, @$); }
 
 /*
  * Function-related
  */
 
+ReturnType:
+      ThinArrow Type { $$ = $2; }
+    | error { EXPECTED(ReturnType, @$); }
+
 FunctionItem:
-    Def Identifier FunctionItemParams Block
-    { $$ = (Item*)FunctionItem_new(context->ast, $2, $3, $4); }
+    Def Identifier FunctionItemParams ReturnType Block
+    { $$ = (Item*)FunctionItem_new(context->ast, $2, $4, $5); }
 
 FunctionItemParams:
-    LeftParen RightParen ThinArrow Type { $$ = $4; }
+      LeftParen RightParen
+    | error { EXPECTED(Params, @$); }
+
 
 %%
 
@@ -192,27 +236,37 @@ static void success(ParseContext* context, Item* item) {
     context->result->u.syntax = item;
 }
 
-static void unexpected_character(ParseContext* context) {
+static void expected(
+    ParseContext* context, SyntaxCategory category, uint32_t token_index
+) {
     ParseError* error;
     Token* token;
 
     context->result->kind = ParseResultKind_ParseError;
 
-    token = &context->tokens->data[context->token_index - 1];
+    token = &context->tokens->data[token_index];
     error = &context->result->u.parse_error;
 
-    error->token_pos = token->pos;
-    error->token_kind = token->kind;
+    error->expected_category = category;
+    error->actual_token_pos = token->pos;
+    error->actual_token_kind = token->kind;
 }
 
-static void yyerror(ParseContext* context, char const* message) {
+static void yyerror(
+    uint32_t* loc, ParseContext* context, char const* message
+) {
+    (void)loc; /* unused */
     context->result->kind = ParseResultKind_YaccError;
     context->result->u.yacc_error.data = message;
     context->result->u.yacc_error.size = strlen(message);
 }
 
-static int yylex(YYSTYPE* value, ParseContext* context) {
+static int yylex(YaccValue* value, uint32_t* loc, ParseContext* context) {
     Token const* token;
+
+    (void)loc; /* unused */
+
+    *loc = context->token_index;
 
     assert(context->token_index < context->tokens->size);
     token = &context->tokens->data[context->token_index];

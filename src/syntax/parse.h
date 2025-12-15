@@ -11,9 +11,25 @@ typedef enum ParseResultKind {
     ParseResultKind_YaccError
 } ParseResultKind;
 
+#define SYNTAX_CATEGORY_LIST(X) \
+    X(Item, "item")             \
+    X(Stmt, "statement")        \
+    X(Expr, "expression")       \
+    X(Type, "type")             \
+    X(Params, "parameter list") \
+    X(ReturnType, "return type")
+
+typedef enum SyntaxCategory {
+    #define X(name, str) SyntaxCategory_##name,
+    SYNTAX_CATEGORY_LIST(X)
+    #undef X
+    SyntaxCategory_COUNT ATTR_UNUSED
+} SyntaxCategory;
+
 typedef struct ParseError {
-    SourcePos token_pos;
-    TokenKind token_kind;
+    SyntaxCategory expected_category;
+    SourcePos actual_token_pos;
+    TokenKind actual_token_kind;
 } ParseError;
 
 typedef struct ParseResult {

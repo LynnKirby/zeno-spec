@@ -53,6 +53,17 @@ static void write_token_kind_description(Writer* writer, TokenKind kind) {
     }
 }
 
+static void write_syntax_category(Writer* writer, SyntaxCategory category) {
+    switch (category) {
+    #define X(name, str)                \
+        case SyntaxCategory_##name:     \
+            Writer_format(writer, str); \
+            break;
+    SYNTAX_CATEGORY_LIST(X)
+    #undef X
+    }
+}
+
 void write_error_prefix(Writer* writer, StringRef path, SourcePos pos) {
     Writer_write_str(writer, path);
     Writer_format(writer, ":");
@@ -78,9 +89,11 @@ void write_lex_error(
 void write_parse_error(
     Writer* writer, StringRef path, ParseError const* error
 ) {
-    write_error_prefix(writer, path, error->token_pos);
-    Writer_format(writer, "unexpected ");
-    write_token_kind_description(writer, error->token_kind);
+    write_error_prefix(writer, path, error->actual_token_pos);
+    Writer_format(writer, "expected ");
+    write_syntax_category(writer, error->expected_category);
+    Writer_format(writer, ", found ");
+    write_token_kind_description(writer, error->actual_token_kind);
     Writer_format(writer, "\n");
 }
 
