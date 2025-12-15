@@ -1,31 +1,27 @@
-\section{Concrete syntax}
+# Concrete syntax
 
 A source file is a sequence of Unicode characters.
-The \emph{lexical syntax} converts a source file into a list of tokens.
-The \emph{hierarchical syntax} converts a list of tokens into a syntax tree.
+The *lexical syntax* converts a source file into a list of tokens.
+The *hierarchical syntax* converts a list of tokens into a syntax tree.
 
-\subsection{Source file}
+## Source text {#sec:source-text}
 
 Characters in a source file are limited to (TODO: exclude control, bidi, etc).
 
-\subsection{Lexical syntax}
+## Lexical syntax {#sec:lex}
 
-The lexical syntax is defined with a parsing expression grammar \cite[PEG].
+The lexical syntax is defined with a parsing expression grammar [@PEG].
 
 The tokens produced are:
 
-\begin{items}
-    \item{The string terminals in the Symbol rule.}
-    \item{The string terminals in the Keyword rule.}
-    \item{The IDENTIFIER rule.}
-    \item{The INT_LITERAL rule.}
-\end{items}
+- The string terminals in the Symbol rule.
+- The string terminals in the Keyword rule.
+- The IDENTIFIER rule.
+- The INT_LITERAL rule.
 
-\begin{note}
-The "." metacharacter is limited to the characters defined in \ref[source-file].
-\end{note}
+Note: The "." metacharacter is limited to the characters defined in @sec:source-text.
 
-\begin{peg}
+```peg
 SourceFile <- <U+FEFF>? (Trivia / Token)*
 
 Trivia <-
@@ -128,13 +124,13 @@ DecimalLiteral <-
 HexLiteral <- ("0x" / "0X") [0-9a-fA-F] ("_" [0-9a-fA-F])* !IdContinue
 
 BinaryLiteral <- ("0b" / "0B") [01] ("_" [01])* !IdContinue
-\end{peg}
+```
 
-\subsection{Hierarchical syntax}
+## Hierarchical syntax {#sec:parse}
 
 The hierarchical syntax is defined with a context-free grammar.
 
-\begin{grammar}
+```grammar
 File ::= Item
 
 Item ::= FunctionItem
@@ -153,17 +149,19 @@ PrimaryExpr ::=
     | "(" Expr ")"
 
 FunctionItem ::= "def" IDENTIFIER FunctionItemParams Block
-FunctionItemParams ::= "(" ")"
-\end{grammar}
+FunctionItemParams ::= "(" ")" "->" Type
 
-\subsection{Limits}
+Type ::= IDENTIFIER
+```
+
+## Limits {#sec:syntax-limits}
 
 Source files are divided into lines by the LineTerminator rule.
 The LineTerminator characters are included in the line as its last characters.
 The last line has no LineTerminator characters.
 
-A source file shall have at most $2^22 - 1$ (4194303) characters.
+A source file shall have at most $2^{22} - 1$ (4194303) characters.
 
-A source file shall have at most $2^20 - 1$ (1048575) lines.
+A source file shall have at most $2^{20} - 1$ (1048575) lines.
 
-A source file shall have at most $2^12 - 1$ (4095) characters per line.
+A source file shall have at most $2^{12} - 1$ (4095) characters per line.

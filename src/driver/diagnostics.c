@@ -1,4 +1,5 @@
 #include "src/driver/diagnostics.h"
+#include "src/lang/binding.h"
 
 static void write_lex_error_description(Writer* writer, LexError const* error) {
     switch (error->kind) {
@@ -52,13 +53,24 @@ static void write_token_kind_description(Writer* writer, TokenKind kind) {
     }
 }
 
+void write_error_prefix(Writer* writer, ByteStringRef path, SourcePos pos) {
+    Writer_write_bstr(writer, path);
+    Writer_format(writer, ":");
+
+    if (pos.line > 0) {
+        Writer_format(writer, "%u:", pos.line);
+        if (pos.column > 0) {
+            Writer_format(writer, "%u:", pos.column);
+        }
+    }
+
+    Writer_format(writer, " error: ");
+}
+
 void write_lex_error(
     Writer* writer, ByteStringRef path, LexError const* error
 ) {
-    Writer_write_bstr(writer, path);
-    Writer_format(
-        writer, ":%u:%u: error: ", error->pos.line, error->pos.column
-    );
+    write_error_prefix(writer, path, error->pos);
     write_lex_error_description(writer, error);
     Writer_format(writer, "\n");
 }
@@ -66,13 +78,8 @@ void write_lex_error(
 void write_parse_error(
     Writer* writer, ByteStringRef path, ParseError const* error
 ) {
-    Writer_write_bstr(writer, path);
-    Writer_format(
-        writer,
-        ":%u:%u: error: unexpected ",
-        error->token_pos.line,
-        error->token_pos.column
-    );
+    write_error_prefix(writer, path, error->token_pos);
+    Writer_format(writer, "unexpected ");
     write_token_kind_description(writer, error->token_kind);
     Writer_format(writer, "\n");
 }
@@ -81,4 +88,13 @@ void write_yacc_error(Writer* writer, ByteStringRef message) {
     Writer_format(writer, "zeno-spec: error: yacc: ");
     Writer_write_bstr(writer, message);
     Writer_format(writer, "\n");
+}
+
+void write_undefined_identifier_error(
+    Writer* writer, ByteStringRef path, UndefinedIdentifier* error
+) {
+    write_error_prefix(writer, path, error->pos);
+    Writer_format(writer, "undefined identifier `");
+    Writer_write_str(writer, error->value);
+    Writer_format(writer, "`\n");
 }

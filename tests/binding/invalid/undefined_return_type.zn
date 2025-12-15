@@ -1,0 +1,1 @@
+def f() -> ThisDoesNotExist { return 0; }

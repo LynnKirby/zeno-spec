@@ -6,6 +6,8 @@
 #include "src/lang/token.h"
 #include "src/support/io.h"
 
+struct UndefinedIdentifier;
+
 /** Write error message from LexError. */
 void write_lex_error(
     Writer* writer, ByteStringRef path, LexError const* error
@@ -18,5 +20,10 @@ void write_parse_error(
 
 /** Write error message returned by yacc. */
 void write_yacc_error(Writer* writer, ByteStringRef message);
+
+/** Report undefined identifier. */
+void write_undefined_identifier_error(
+    Writer* writer, ByteStringRef path, struct UndefinedIdentifier* error
+);
 
 #endif

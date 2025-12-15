@@ -3,6 +3,7 @@
 
 #include "src/support/bigint.h"
 #include "src/support/io.h"
+#include "src/support/source_pos.h"
 #include "src/support/stdint.h"
 #include "src/support/string_ref.h"
 
@@ -111,11 +112,6 @@ typedef enum LexErrorKind {
 } LexErrorKind;
 
 StringRef LexErrorKind_name(LexErrorKind kind);
-
-typedef struct SourcePos {
-    uint32_t line;
-    uint32_t column;
-} SourcePos;
 
 typedef struct LexError {
     SourcePos pos;

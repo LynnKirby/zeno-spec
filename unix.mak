@@ -26,15 +26,18 @@ Q = $(V_$(V))
 V_ = @
 
 #
-# zeno-spec executable options
+# Executable config
 #
 
-zeno_spec_objects = \
+lib_objects = \
 	src/driver/diagnostics$(O) \
 	src/driver/lex_actions$(O) \
-	src/driver/main$(O) \
 	src/driver/parse_actions$(O) \
 	src/lang/ast$(O) \
+	src/lang/ast_dump$(O) \
+	src/lang/ast_new$(O) \
+	src/lang/binding_generation$(O) \
+	src/lang/binding_resolution$(O) \
 	src/lang/lex$(O) \
 	src/lang/parse.tab$(O) \
 	src/lang/token$(O) \
@@ -42,28 +45,53 @@ zeno_spec_objects = \
 	src/support/bigint$(O) \
 	src/support/encoding$(O) \
 	src/support/format$(O) \
+	src/support/hash_map$(O) \
 	src/support/io$(O) \
-	src/support/malloc$(O)
+	src/support/malloc$(O) \
+	src/support/string_ref$(O) \
+	src/support/string_set$(O)
+
+zeno_spec_objects = \
+	$(lib_objects) \
+	src/driver/main$(O)
 
 zeno_spec_exe = zeno-spec$(E)
+
+hash_map_test_objects = \
+	$(lib_objects) \
+	src/support/hash_map_test$(O)
+
+hash_map_test_exe = hash_map_test$(E)
 
 #
 # Top-level targets
 #
 
-all: $(zeno_spec_exe)
+all: $(zeno_spec_exe) $(hash_map_test)
 
 clean:
-	rm -f $(zeno_spec_exe) $(zeno_spec_objects)
-	rm -f src/lang/parse.output src/lang/parse.tab.c
-	rm -f src/driver/*.d src/lang/*.d src/support/*.d
+	@echo "CLEAN"
+	$(Q)rm -f $(lib_objects)
+	$(Q)rm -f $(zeno_spec_exe) src/driver/main$(O)
+	$(Q)rm -f $(hash_map_test_exe) src/support/hash_map_test$(O)
+	$(Q)rm -f src/lang/parse.output src/lang/parse.tab.c
+	$(Q)rm -f src/driver/*.d src/lang/*.d src/support/*.d
 
 -include src/driver/*.d
 -include src/lang/*.d
 -include src/support/*.d
 
 #
-# zeno-spec executable targets
+# Compile targets
+#
+
+.c$(O):
+	@echo "CC $@: $<"
+	$(Q)mkdir -p $(@D)
+	$(Q)$(CC) -c $(CFLAGS) $(CPPFLAGS) -I$(srcdir) -o $@ $<
+
+#
+# zeno-spec executable
 #
 
 $(zeno_spec_exe): $(zeno_spec_objects)
@@ -71,37 +99,43 @@ $(zeno_spec_exe): $(zeno_spec_objects)
 	$(Q)mkdir -p $(@D)
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(zeno_spec_objects) $(LIBS)
 
-.c$(O):
-	@echo "CC $@: $<"
-	$(Q)mkdir -p $(@D)
-	$(Q)$(CC) -c $(CFLAGS) $(CPPFLAGS) -I$(srcdir) -o $@ $<
-
 src/lang/parse.tab.c: src/lang/parse.y
 	@echo "YACC $@: $?"
 	$(Q)mkdir -p $(@D)
 	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/lang/parse $?
 
 #
+# Test executables
+#
+
+$(hash_map_test_exe): $(hash_map_test_objects)
+	@echo "LD $@"
+	$(Q)mkdir -p $(@D)
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(hash_map_test_objects) $(LIBS)
+
+#
 # Tests
 #
 
 # TODO: an actual test framework
-test: test-lex
+test: test-lex test-hash-map
 
-test-lex: test-lex-valid test-lex-invalid
+test-lex: test-lex-valid test-lex-invalid test-binding-invalid
 
 CHECK_LEX_VALID = $(Q)./$(zeno_spec_exe) --check-lex $(srcdir)/tests/lex/valid
 CHECK_LEX_INVALID = $(Q)./$(zeno_spec_exe) --check-lex-invalid $(srcdir)/tests/lex/invalid
+CHECK_BINDING_INVALID = $(Q)./$(zeno_spec_exe) --check-binding-invalid $(srcdir)/tests/binding/invalid
 
-test-lex-valid: zeno-spec$(E)
+test-lex-valid: $(zeno_spec_exe)
+	@echo "TEST lex-valid"
 	$(CHECK_LEX_VALID)/bom.zn
 	$(CHECK_LEX_VALID)/cr.zn
 	$(CHECK_LEX_VALID)/crlf.zn
 	$(CHECK_LEX_VALID)/tab.zn
 	$(CHECK_LEX_VALID)/tokens.zn
-	@echo "PASS lex-valid"
 
-test-lex-invalid: zeno-spec$(E)
+test-lex-invalid: $(zeno_spec_exe)
+	@echo "TEST lex-invalid"
 	$(CHECK_LEX_INVALID)/bad_utf8.zn
 	$(CHECK_LEX_INVALID)/bad_utf8_in_block_comment.zn
 	$(CHECK_LEX_INVALID)/bad_utf8_in_line_comment.zn
@@ -120,4 +154,11 @@ test-lex-invalid: zeno-spec$(E)
 	$(CHECK_LEX_INVALID)/hex_literal_trailing_junk.zn
 	$(CHECK_LEX_INVALID)/hex_literal_trailing_underscore.zn
 	$(CHECK_LEX_INVALID)/unclosed_block_comment.zn
-	@echo "PASS lex-invalid"
+
+test-binding-invalid: $(zeno_spec_exe)
+	@echo "TEST binding-invalid"
+	$(CHECK_BINDING_INVALID)/undefined_return_type.zn
+
+test-hash-map: $(hash_map_test_exe)
+	@echo "TEST hash-map"
+	$(Q)./$(hash_map_test_exe)

@@ -66,6 +66,17 @@ int main(int argc, char const* const* argv) {
                 action = DriverAction_CheckParseInvalid;
                 continue;
             }
+            if (strcmp(arg, "--dump-binding") == 0) {
+                assert(0 && "not implemented");
+            }
+            if (strcmp(arg, "--check-binding") == 0) {
+                action = DriverAction_CheckBinding;
+                continue;
+            }
+            if (strcmp(arg, "--check-binding-invalid") == 0) {
+                action = DriverAction_CheckBindingInvalid;
+                continue;
+            }
             Writer_format(
                 Writer_stderr, "zeno-spec: error: unknown flag '%s'\n", arg
             );
@@ -137,6 +148,12 @@ int main(int argc, char const* const* argv) {
             break;
         case DriverAction_CheckParseInvalid:
             res = check_parse_invalid_action(file_ref, source);
+            break;
+        case DriverAction_CheckBinding:
+            res = check_binding_action(file_ref, source);
+            break;
+        case DriverAction_CheckBindingInvalid:
+            res = check_binding_invalid_action(file_ref, source);
             break;
         case DriverAction_Unknown:
             assert(0 && "unreachable");

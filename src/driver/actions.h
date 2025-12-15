@@ -10,7 +10,9 @@ typedef enum DriverAction {
     DriverAction_CheckLexInvalid,
     DriverAction_DumpParse,
     DriverAction_CheckParse,
-    DriverAction_CheckParseInvalid
+    DriverAction_CheckParseInvalid,
+    DriverAction_CheckBinding,
+    DriverAction_CheckBindingInvalid
 } DriverAction;
 
 int dump_lex_action(ByteStringRef path, ByteStringRef source);
@@ -20,5 +22,8 @@ int check_lex_invalid_action(ByteStringRef path, ByteStringRef source);
 int dump_parse_action(ByteStringRef path, ByteStringRef source);
 int check_parse_action(ByteStringRef path, ByteStringRef source);
 int check_parse_invalid_action(ByteStringRef path, ByteStringRef source);
+
+int check_binding_action(ByteStringRef path, ByteStringRef source);
+int check_binding_invalid_action(ByteStringRef path, ByteStringRef source);
 
 #endif

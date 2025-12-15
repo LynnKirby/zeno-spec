@@ -20,4 +20,10 @@ typedef struct StringRef {
 /** Static initializer for a StringRef using a string literal. */
 #define STATIC_STRING_REF(s) { (uint8_t const*)(s), sizeof(s) - 1 }
 
+int StringRef_equal(StringRef left, StringRef right);
+uint32_t StringRef_hash(StringRef string);
+
+uint32_t StringRef_hash_generic(void const* key);
+int StringRef_equal_generic(void const* left, void const* right);
+
 #endif

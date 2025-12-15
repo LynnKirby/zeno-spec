@@ -43,6 +43,10 @@
 %type <expr> Expr
 %type <expr> PrimaryExpr
 
+%type <expr> Type
+
+%type <expr> FunctionItemParams
+
 /* Set to 0 so that EndOfFile == YYEOF */
 %token EndOfFile 0
 
@@ -162,15 +166,21 @@ PrimaryExpr:
     | LeftParen Expr RightParen { $$ = $2; }
 
 /*
+ * Type expressions
+ */
+
+Type: Identifier { $$ = (Expr*)IdentifierExpr_new(context->ast, $1); }
+
+/*
  * Function-related
  */
 
 FunctionItem:
     Def Identifier FunctionItemParams Block
-    { $$ = (Item*)FunctionItem_new(context->ast, $2, $4); }
+    { $$ = (Item*)FunctionItem_new(context->ast, $2, $3, $4); }
 
 FunctionItemParams:
-    LeftParen RightParen
+    LeftParen RightParen ThinArrow Type { $$ = $4; }
 
 %%
 

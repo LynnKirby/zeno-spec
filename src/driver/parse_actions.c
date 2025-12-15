@@ -1,7 +1,18 @@
 #include "src/driver/actions.h"
 #include "src/driver/diagnostics.h"
+#include "src/lang/binding.h"
 #include "src/lang/lex.h"
 #include "src/lang/parse.h"
+
+static int is_binding_action(DriverAction action) {
+    switch (action) {
+    case DriverAction_CheckBinding:
+    case DriverAction_CheckBindingInvalid:
+        return true;
+    default:
+        return false;
+    }
+}
 
 static int parse_action(
     ByteStringRef path, ByteStringRef source, DriverAction action
@@ -42,6 +53,30 @@ static int parse_action(
         break;
     }
 
+    /* FIXME: move this */
+    if (res == 0 && is_binding_action(action)) {
+        SymbolBindingResult binding_result;
+        symbol_binding(
+            &binding_result, &context, (FunctionItem*)parse_result.u.syntax
+        );
+
+        switch (binding_result.kind) {
+        case SymbolBindingResultKind_Success:
+            if (action == DriverAction_CheckBindingInvalid) {
+                res = 1;
+            }
+            break;
+        case SymbolBindingResultKind_UndefinedIdentifier:
+            if (action != DriverAction_CheckBindingInvalid) {
+                write_undefined_identifier_error(
+                    Writer_stderr, path, &binding_result.u.undefined_identifier
+                );
+                res = 1;
+            }
+            break;
+        }
+    }
+
     Lexer_destroy(&lexer);
     AstContext_destroy(&context);
     return res;
@@ -57,4 +92,12 @@ int check_parse_action(ByteStringRef path, ByteStringRef source) {
 
 int check_parse_invalid_action(ByteStringRef path, ByteStringRef source) {
     return parse_action(path, source, DriverAction_CheckParseInvalid);
+}
+
+int check_binding_action(ByteStringRef path, ByteStringRef source) {
+    return parse_action(path, source, DriverAction_CheckBinding);
+}
+
+int check_binding_invalid_action(ByteStringRef path, ByteStringRef source) {
+    return parse_action(path, source, DriverAction_CheckBindingInvalid);
 }
