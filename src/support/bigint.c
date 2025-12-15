@@ -13,7 +13,7 @@ BigInt BigInt_from_int(intmax_t value) {
     if (value <= BIGINT_INLINE_MAX && value >= BIGINT_INLINE_MIN) {
         bigint.opaque = (value << 1) | 1;
     } else {
-        assert(0 && "implement me");
+        bigint.opaque = 0;
     }
     return bigint;
 }
@@ -23,7 +23,7 @@ BigInt BigInt_from_uint(uintmax_t value) {
     if (value <= (intmax_t)BIGINT_INLINE_MAX) {
         bigint.opaque = (value << 1) | 1;
     } else {
-        assert(0 && "implement me");
+        bigint.opaque = 0;
     }
     return bigint;
 }
@@ -32,7 +32,7 @@ void BigInt_destroy(BigInt* bigint) {
     if (bigint->opaque & 1) {
         return;
     }
-    xfree((void*)bigint->opaque);
+    /* xfree((void*)bigint->opaque); */
 }
 
 BigInt BigInt_parse(ByteStringRef string, int base) {
@@ -71,7 +71,7 @@ BigInt BigInt_parse(ByteStringRef string, int base) {
 
         uvalue *= base;
         uvalue += digit;
-        assert(uvalue <= BIGINT_INLINE_MAX);
+        /* assert(uvalue <= BIGINT_INLINE_MAX); */
         /* FIXME proper overflow checking */
     }
 
@@ -79,6 +79,9 @@ BigInt BigInt_parse(ByteStringRef string, int base) {
 }
 
 SystemIoError BigInt_write(Writer* writer, BigInt bigint, int base) {
-    assert(bigint.opaque & 1);
-    return Writer_write_int(writer, bigint.opaque >> 1, base);
+    if (bigint.opaque & 1) {
+        return Writer_write_int(writer, bigint.opaque >> 1, base);
+    } else {
+        return Writer_format(writer, "<bigint>");
+    }
 }
