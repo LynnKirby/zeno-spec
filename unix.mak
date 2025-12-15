@@ -58,10 +58,10 @@ zeno_spec_objects = \
 
 zeno_spec_exe = zeno-spec$(E)
 
-hash_map_test_objects = \
-	$(lib_objects) \
-	src/support/hash_map_test$(O)
+lex_fuzz_objects = $(lib_objects) src/syntax/lex_fuzz$(O)
+lex_fuzz_exe = lex_fuzz$(E)
 
+hash_map_test_objects = $(lib_objects) src/support/hash_map_test$(O)
 hash_map_test_exe = hash_map_test$(E)
 
 #
@@ -74,9 +74,9 @@ clean:
 	@echo "CLEAN"
 	$(Q)rm -f $(lib_objects)
 	$(Q)rm -f $(zeno_spec_exe) src/driver/main$(O)
+	$(Q)rm -f $(lex_fuzz_exe) src/syntax/lex_fuzz$(O)
 	$(Q)rm -f $(hash_map_test_exe) src/support/hash_map_test$(O)
 	$(Q)rm -f src/syntax/parse.output src/syntax/parse.tab.c
-	$(Q)rm -f src/ast/*.d src/driver/*.d src/lang/*.d src/support/*.d src/syntax/*.d
 
 -include src/ast/*.d
 -include src/driver/*.d
@@ -106,6 +106,17 @@ src/syntax/parse.tab.c: src/syntax/parse.y
 	@echo "YACC $@: $?"
 	$(Q)mkdir -p $(@D)
 	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/syntax/parse $?
+
+#
+# Fuzz executables
+#
+
+fuzz: $(lex_fuzz_exe)
+
+$(lex_fuzz_exe): $(lex_fuzz_objects)
+	@echo "LD $@"
+	$(Q)mkdir -p $(@D)
+	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(lex_fuzz_objects) $(LIBS)
 
 #
 # Test executables

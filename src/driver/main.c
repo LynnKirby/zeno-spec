@@ -115,7 +115,7 @@ int main(int argc, char const* const* argv) {
 
         ast = AstContext_new();
 
-        io_res = AstContext_add_file(ast, path, file, &source);
+        io_res = AstContext_source_from_file(ast, path, file, &source);
 
         if (io_res != SystemIoError_Success) {
             error("could not read '%s': system error %u", path, io_res);

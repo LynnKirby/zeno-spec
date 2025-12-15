@@ -14,11 +14,19 @@ AstContext* AstContext_new(void);
 void AstContext_delete(AstContext* ast);
 
 /** Read a file and add it to the context. */
-SystemIoError AstContext_add_file(
+SystemIoError AstContext_source_from_file(
     AstContext* ast,
     StringRef path,
     SystemFile file,
     SourceFile const** out_source
+);
+
+/** Create a source file from a byte buffer. */
+SourceFile const* AstContext_source_from_bytes(
+    AstContext* ast,
+    StringRef path,
+    void const* data,
+    size_t size
 );
 
 /** Create an interned string. */

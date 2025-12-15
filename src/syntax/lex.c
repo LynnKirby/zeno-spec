@@ -600,9 +600,14 @@ void lex_source(
     context.ast = ast;
     context.cursor = SourceFile_data(source);
     context.limit = context.cursor + SourceFile_size(source);
+
     context.cursor_pos.line = 1;
     context.cursor_pos.column = 1;
     context.total_characters = 0;
+
+    context.tokens_data = NULL;
+    context.tokens_size = 0;
+    context.tokens_capacity = 0;
 
     if (config == NULL) {
         context.config.tab_stop = 8;

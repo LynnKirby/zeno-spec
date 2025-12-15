@@ -76,22 +76,10 @@ void* AstContext_allocate(AstContext* ast, size_t size) {
     return Arena_allocate(&ast->arena, size);
 }
 
-SystemIoError AstContext_add_file(
-    AstContext* ast,
-    StringRef path,
-    SystemFile file,
-    SourceFile const** out_source
+static SourceFile const* add_file(
+    AstContext* ast, StringRef path, void const* data, size_t size
 ) {
     SourceFile* source;
-    SystemIoError res;
-    void* data;
-    size_t size;
-
-    res = SystemFile_read_all(file, &data, &size);
-
-    if (res != SystemIoError_Success) {
-        return res;
-    }
 
     source = AstContext_allocate(ast, sizeof(SourceFile));
     source->path = AstContext_add_string(ast, path);
@@ -108,6 +96,39 @@ SystemIoError AstContext_add_file(
     ast->files_data[ast->files_size] = source;
     ast->files_size += 1;
 
-    *out_source = source;
-    return SystemIoError_Success;
+    return source;
+}
+
+SystemIoError AstContext_source_from_file(
+    AstContext* ast,
+    StringRef path,
+    SystemFile file,
+    SourceFile const** out_source
+) {
+    SystemIoError res;
+    void* data;
+    size_t size;
+
+    res = SystemFile_read_all(file, &data, &size);
+
+    if (res == SystemIoError_Success) {
+        *out_source = add_file(ast, path, data, size);
+    }
+
+    return res;
+}
+
+SourceFile const* AstContext_source_from_bytes(
+    AstContext* ast,
+    StringRef path,
+    void const* data,
+    size_t size
+) {
+    char* copy;
+
+    copy = xmalloc(size + 1);
+    memcpy(copy, data, size);
+    copy[size] = 0;
+
+    return add_file(ast, path, copy, size);
 }
