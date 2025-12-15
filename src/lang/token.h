@@ -132,7 +132,6 @@ typedef struct Token {
     } value;
 } Token;
 
-
 typedef struct TokenList {
     Token* data;
     size_t size;

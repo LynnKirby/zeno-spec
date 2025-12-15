@@ -3,6 +3,13 @@
 
 #include <string.h>
 
+StringRef StringRef_from_zstr(char const* s) {
+    StringRef ref;
+    ref.data = (uint8_t const*)s;
+    ref.size = strlen(s);
+    return ref;
+}
+
 int StringRef_equal(StringRef left, StringRef right) {
     return (left.size == right.size)
         && (memcmp(left.data, right.data, left.size) == 0);

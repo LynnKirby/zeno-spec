@@ -588,16 +588,12 @@ loop:
  */
 
 void lex_bytes(
-    LexResult* result, ByteStringRef source, LexerConfig const* config
+    LexResult* result, SourceFile const* source, LexerConfig const* config
 ) {
     LexContext context;
 
-    /* Must be nul-terminated. */
-    assert(source.size > 0);
-    assert(source.data[source.size - 1] == 0);
-
-    context.cursor = (uint8_t const*)source.data;
-    context.limit = context.cursor + source.size - 1;
+    context.cursor = (uint8_t const*)source->data;
+    context.limit = context.cursor + source->size;
     context.cursor_pos.line = 1;
     context.cursor_pos.column = 1;
     context.total_characters = 0;

@@ -14,9 +14,7 @@ static void dump_token_list(TokenList tokens) {
 }
 
 static int lex_action(
-    ByteStringRef path,
-    ByteStringRef source,
-    DriverAction action
+    AstContext* ast, SourceFile const* source, DriverAction action
 ) {
     int lex_okay = true;
     LexResult lex_result;
@@ -30,7 +28,9 @@ static int lex_action(
         xfree(lex_result.u.tokens.data);
     } else {
         if (action != DriverAction_CheckLexInvalid) {
-            write_lex_error(Writer_stderr, path, &lex_result.u.error);
+            write_lex_error(
+                Writer_stderr, source->path.value, &lex_result.u.error
+            );
         }
         lex_okay = false;
     }
@@ -47,14 +47,14 @@ static int lex_action(
     }
 }
 
-int dump_lex_action(ByteStringRef path, ByteStringRef source) {
-    return lex_action(path, source, DriverAction_DumpLex);
+int dump_lex_action(AstContext* ast, SourceFile const* source) {
+    return lex_action(ast, source, DriverAction_DumpLex);
 }
 
-int check_lex_action(ByteStringRef path, ByteStringRef source) {
-    return lex_action(path, source, DriverAction_CheckLex);
+int check_lex_action(AstContext* ast, SourceFile const* source) {
+    return lex_action(ast, source, DriverAction_CheckLex);
 }
 
-int check_lex_invalid_action(ByteStringRef path, ByteStringRef source) {
-    return lex_action(path, source, DriverAction_CheckLexInvalid);
+int check_lex_invalid_action(AstContext* ast, SourceFile const* source) {
+    return lex_action(ast, source, DriverAction_CheckLexInvalid);
 }

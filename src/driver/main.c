@@ -4,6 +4,7 @@
 #include "src/lang/parse.h"
 #include "src/support/io.h"
 #include "src/support/malloc.h"
+#include "src/support/string_ref.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -29,7 +30,7 @@ static void error(char const* format, ...) {
 
 int main(int argc, char const* const* argv) {
     int res;
-    char const* path = NULL;
+    StringRef path = {0};
     SystemFile file;
     DriverAction action = DriverAction_Unknown;
 
@@ -39,7 +40,7 @@ int main(int argc, char const* const* argv) {
             char const* arg;
             arg = argv[i];
             if (arg[0] != '-' || arg[1] == 0) {
-                path = arg;
+                path = StringRef_from_zstr(arg);
                 continue;
             }
             if (strcmp(arg, "--dump-lex") == 0) {
@@ -84,7 +85,7 @@ int main(int argc, char const* const* argv) {
         }
     }
 
-    if (path == NULL) {
+    if (path.size == 0) {
         error("no input files");
         return 1;
     }
@@ -94,72 +95,67 @@ int main(int argc, char const* const* argv) {
         return 1;
     }
 
-    if (path[0] == '-' && path[1] == 0) {
-        path = "<stdin>";
+    if (path.size == 1 && path.data[0] == '-') {
+        path = StringRef_from_zstr("<stdin>");
         file = SystemFile_stdin;
 
         if (SystemFile_isatty(file)) {
             note("reading from stdin");
         }
     } else {
-        SystemIoError res;
-        res = SystemFile_open_read(&file, path);
-        if (res != SystemIoError_Success) {
-            error("could not open '%s': system error XX", path);
+        SystemIoError io_res;
+        io_res = SystemFile_open_read(&file, (char const*)path.data); /*FIXME*/
+        if (io_res != SystemIoError_Success) {
+            error("could not open '%s': system error %u", path, io_res);
             return 1;
         }
     }
 
     {
-        ByteStringRef file_ref;
-        ByteStringRef source;
-        SystemIoError io_error;
-        void* file_data;
-        size_t file_size;
+        AstContext* ast;
+        SystemIoError io_res;
+        SourceFile const* source;
 
-        io_error = SystemFile_read_all(file, &file_data, &file_size);
+        ast = AstContext_new();
 
-        if (io_error != SystemIoError_Success) {
-            error("could not read '%s': system error %u", path, io_error);
+        io_res = AstContext_add_file(ast, path, file, &source);
+
+        if (io_res != SystemIoError_Success) {
+            error("could not read '%s': system error %u", path, io_res);
+            AstContext_delete(ast);
             return 1;
         }
 
-        source.data = file_data;
-        source.size = file_size + 1;
-
-        file_ref.data = path;
-        file_ref.size = strlen(path);
-
         switch (action) {
         case DriverAction_DumpLex:
-            res = dump_lex_action(file_ref, source);
+            res = dump_lex_action(ast, source);
             break;
         case DriverAction_CheckLex:
-            res = check_lex_action(file_ref, source);
+            res = check_lex_action(ast, source);
             break;
         case DriverAction_CheckLexInvalid:
-            res = check_lex_invalid_action(file_ref, source);
+            res = check_lex_invalid_action(ast, source);
             break;
         case DriverAction_DumpParse:
-            res = dump_parse_action(file_ref, source);
+            res = dump_parse_action(ast, source);
             break;
         case DriverAction_CheckParse:
-            res = check_parse_action(file_ref, source);
+            res = check_parse_action(ast, source);
             break;
         case DriverAction_CheckParseInvalid:
-            res = check_parse_invalid_action(file_ref, source);
+            res = check_parse_invalid_action(ast, source);
             break;
         case DriverAction_CheckBinding:
-            res = check_binding_action(file_ref, source);
+            res = check_binding_action(ast, source);
             break;
         case DriverAction_CheckBindingInvalid:
-            res = check_binding_invalid_action(file_ref, source);
+            res = check_binding_invalid_action(ast, source);
             break;
         case DriverAction_Unknown:
             assert(0 && "unreachable");
         }
 
-        xfree(file_data);
+        AstContext_delete(ast);
     }
 
     return res;

@@ -1,9 +1,9 @@
 #ifndef _ZENO_SPEC_SRC_LEX_H
 #define _ZENO_SPEC_SRC_LEX_H
 
+#include "src/ast/source.h"
 #include "src/lang/token.h"
 #include "src/support/stdint.h"
-#include "src/support/string_ref.h"
 
 #include <setjmp.h>
 
@@ -20,7 +20,7 @@ typedef struct LexResult {
 } LexResult;
 
 void lex_bytes(
-    LexResult* result, ByteStringRef source, LexerConfig const* config
+    LexResult* result, SourceFile const* source, LexerConfig const* config
 );
 
 #endif

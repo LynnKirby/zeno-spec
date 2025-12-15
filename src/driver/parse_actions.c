@@ -17,23 +17,20 @@ static int is_binding_action(DriverAction action) {
 }
 
 static int parse_action(
-    ByteStringRef path, ByteStringRef source, DriverAction action
+    AstContext* ast, SourceFile const* source, DriverAction action
 ) {
     int res = 0;
-    AstContext* context;
     LexResult lex_result;
     ParseResult parse_result;
 
     lex_bytes(&lex_result, source, NULL);
 
     if (!lex_result.is_tokens) {
-        write_lex_error(Writer_stderr, path, &lex_result.u.error);
+        write_lex_error(Writer_stderr, source->path.value, &lex_result.u.error);
         return 1;
     }
 
-    context = AstContext_new();
-
-    parse(&parse_result, context, &lex_result.u.tokens);
+    parse(&parse_result, ast, &lex_result.u.tokens);
     xfree(lex_result.u.tokens.data);
 
     switch (parse_result.kind) {
@@ -46,7 +43,9 @@ static int parse_action(
         break;
     case ParseResultKind_ParseError:
         if (action != DriverAction_CheckParseInvalid) {
-            write_parse_error(Writer_stderr, path, &parse_result.u.parse_error);
+            write_parse_error(
+                Writer_stderr, source->path.value, &parse_result.u.parse_error
+            );
             res = 1;
         }
         break;
@@ -60,7 +59,7 @@ static int parse_action(
     if (res == 0 && is_binding_action(action)) {
         SymbolBindingResult binding_result;
         symbol_binding(
-            &binding_result, context, (FunctionItem*)parse_result.u.syntax
+            &binding_result, ast, (FunctionItem*)parse_result.u.syntax
         );
 
         switch (binding_result.kind) {
@@ -72,7 +71,9 @@ static int parse_action(
         case SymbolBindingResultKind_UndefinedIdentifier:
             if (action != DriverAction_CheckBindingInvalid) {
                 write_undefined_identifier_error(
-                    Writer_stderr, path, &binding_result.u.undefined_identifier
+                    Writer_stderr,
+                    source->path.value,
+                    &binding_result.u.undefined_identifier
                 );
                 res = 1;
             }
@@ -80,26 +81,25 @@ static int parse_action(
         }
     }
 
-    AstContext_delete(context);
     return res;
 }
 
-int dump_parse_action(ByteStringRef path, ByteStringRef source) {
-    return parse_action(path, source, DriverAction_DumpParse);
+int dump_parse_action(AstContext* ast, SourceFile const* source) {
+    return parse_action(ast, source, DriverAction_DumpParse);
 }
 
-int check_parse_action(ByteStringRef path, ByteStringRef source) {
-    return parse_action(path, source, DriverAction_CheckParse);
+int check_parse_action(AstContext* ast, SourceFile const* source) {
+    return parse_action(ast, source, DriverAction_CheckParse);
 }
 
-int check_parse_invalid_action(ByteStringRef path, ByteStringRef source) {
-    return parse_action(path, source, DriverAction_CheckParseInvalid);
+int check_parse_invalid_action(AstContext* ast, SourceFile const* source) {
+    return parse_action(ast, source, DriverAction_CheckParseInvalid);
 }
 
-int check_binding_action(ByteStringRef path, ByteStringRef source) {
-    return parse_action(path, source, DriverAction_CheckBinding);
+int check_binding_action(AstContext* ast, SourceFile const* source) {
+    return parse_action(ast, source, DriverAction_CheckBinding);
 }
 
-int check_binding_invalid_action(ByteStringRef path, ByteStringRef source) {
-    return parse_action(path, source, DriverAction_CheckBindingInvalid);
+int check_binding_invalid_action(AstContext* ast, SourceFile const* source) {
+    return parse_action(ast, source, DriverAction_CheckBindingInvalid);
 }

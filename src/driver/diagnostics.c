@@ -53,8 +53,8 @@ static void write_token_kind_description(Writer* writer, TokenKind kind) {
     }
 }
 
-void write_error_prefix(Writer* writer, ByteStringRef path, SourcePos pos) {
-    Writer_write_bstr(writer, path);
+void write_error_prefix(Writer* writer, StringRef path, SourcePos pos) {
+    Writer_write_str(writer, path);
     Writer_format(writer, ":");
 
     if (pos.line > 0) {
@@ -68,7 +68,7 @@ void write_error_prefix(Writer* writer, ByteStringRef path, SourcePos pos) {
 }
 
 void write_lex_error(
-    Writer* writer, ByteStringRef path, LexError const* error
+    Writer* writer, StringRef path, LexError const* error
 ) {
     write_error_prefix(writer, path, error->pos);
     write_lex_error_description(writer, error);
@@ -76,7 +76,7 @@ void write_lex_error(
 }
 
 void write_parse_error(
-    Writer* writer, ByteStringRef path, ParseError const* error
+    Writer* writer, StringRef path, ParseError const* error
 ) {
     write_error_prefix(writer, path, error->token_pos);
     Writer_format(writer, "unexpected ");
@@ -91,7 +91,7 @@ void write_yacc_error(Writer* writer, ByteStringRef message) {
 }
 
 void write_undefined_identifier_error(
-    Writer* writer, ByteStringRef path, UndefinedIdentifier* error
+    Writer* writer, StringRef path, UndefinedIdentifier* error
 ) {
     write_error_prefix(writer, path, error->pos);
     Writer_format(writer, "undefined identifier `");

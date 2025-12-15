@@ -36,6 +36,7 @@ lib_objects = \
 	src/ast/context$(O) \
 	src/ast/dump$(O) \
 	src/ast/nodes$(O) \
+	src/ast/string$(O) \
 	src/lang/binding_generation$(O) \
 	src/lang/binding_resolution$(O) \
 	src/lang/lex$(O) \

@@ -11,7 +11,14 @@ static HashMapConfig string_set_config = HASH_SET_CONFIG(
 
 struct AstContext {
     Arena arena;
-    HashMap string_set; /* Set[AstString] */
+
+    /* Set[AstString] */
+    HashMap string_set;
+
+    /** ArrayList[SourceFile*] */
+    SourceFile const** files_data;
+    size_t files_size;
+    size_t files_capacity;
 };
 
 AstContext* AstContext_new(void) {
@@ -21,11 +28,19 @@ AstContext* AstContext_new(void) {
 
     Arena_init(&ast->arena);
     HashMap_init(&ast->string_set, &string_set_config);
+    ast->files_data  = NULL;
+    ast->files_size = 0;
+    ast->files_capacity = 0;
 
     return ast;
 }
 
 void AstContext_delete(AstContext* ast) {
+    size_t i;
+    for (i = 0; i < ast->files_size; i += 1) {
+        xfree((void*)ast->files_data[i]->data);
+    }
+    xfree(ast->files_data);
     HashMap_destroy(&ast->string_set);
     Arena_destroy(&ast->arena);
     xfree(ast);
@@ -35,8 +50,7 @@ AstString AstContext_add_string(AstContext* ast, StringRef value) {
     AstString item;
     uint32_t id;
 
-    item.value = value;
-    item.hash = StringRef_hash(value);
+    AstString_init(&item, value);
 
     /* TODO: add HashMap API that avoids this double lookup */
 
@@ -61,18 +75,38 @@ void* AstContext_allocate(AstContext* ast, size_t size) {
     return Arena_allocate(&ast->arena, size);
 }
 
-int AstString_equal(AstString const* left, AstString const* right) {
-    return StringRef_equal(left->value, right->value);
-}
+SystemIoError AstContext_add_file(
+    AstContext* ast,
+    StringRef path,
+    SystemFile file,
+    SourceFile const** out_source
+) {
+    SourceFile* source;
+    SystemIoError res;
+    void* data;
+    size_t size;
 
-uint32_t AstString_hash(AstString const* item) {
-    return item->hash;
-}
+    res = SystemFile_read_all(file, &data, &size);
 
-int AstString_equal_generic(void const* left, void const* right) {
-    return AstString_equal(left, right);
-}
+    if (res != SystemIoError_Success) {
+        return res;
+    }
 
-uint32_t AstString_hash_generic(void const* item) {
-    return AstString_hash(item);
+    source = AstContext_allocate(ast, sizeof(SourceFile));
+    source->path = AstContext_add_string(ast, path);
+    source->data = data;
+    source->size = size;
+
+    ast->files_data = ensure_array_capacity(
+        sizeof(SourceFile*),
+        ast->files_data,
+        &ast->files_size,
+        &ast->files_capacity,
+        1
+    );
+    ast->files_data[ast->files_size] = source;
+    ast->files_size += 1;
+
+    *out_source = source;
+    return SystemIoError_Success;
 }

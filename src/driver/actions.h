@@ -1,7 +1,8 @@
 #ifndef _ZENO_SPEC_SRC_DRIVER_ACTIONS_H
 #define _ZENO_SPEC_SRC_DRIVER_ACTIONS_H
 
-#include "src/support/string_ref.h"
+#include "src/ast/context.h"
+#include "src/ast/source.h"
 
 typedef enum DriverAction {
     DriverAction_Unknown,
@@ -15,15 +16,15 @@ typedef enum DriverAction {
     DriverAction_CheckBindingInvalid
 } DriverAction;
 
-int dump_lex_action(ByteStringRef path, ByteStringRef source);
-int check_lex_action(ByteStringRef path, ByteStringRef source);
-int check_lex_invalid_action(ByteStringRef path, ByteStringRef source);
+int dump_lex_action(AstContext* ast, SourceFile const* source);
+int check_lex_action(AstContext* ast, SourceFile const* source);
+int check_lex_invalid_action(AstContext* ast, SourceFile const* source);
 
-int dump_parse_action(ByteStringRef path, ByteStringRef source);
-int check_parse_action(ByteStringRef path, ByteStringRef source);
-int check_parse_invalid_action(ByteStringRef path, ByteStringRef source);
+int dump_parse_action(AstContext* ast, SourceFile const* source);
+int check_parse_action(AstContext* ast, SourceFile const* source);
+int check_parse_invalid_action(AstContext* ast, SourceFile const* source);
 
-int check_binding_action(ByteStringRef path, ByteStringRef source);
-int check_binding_invalid_action(ByteStringRef path, ByteStringRef source);
+int check_binding_action(AstContext* ast, SourceFile const* source);
+int check_binding_invalid_action(AstContext* ast, SourceFile const* source);
 
 #endif
