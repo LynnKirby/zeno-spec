@@ -10,7 +10,7 @@
 %parse-param {ParseContext* context}
 
 %code top {
-    #include "src/lang/parse.h"
+    #include "src/syntax/parse.h"
 
     typedef struct ParseContext {
         TokenList const* tokens;

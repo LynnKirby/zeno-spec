@@ -30,18 +30,15 @@ V_ = @
 #
 
 lib_objects = \
-	src/driver/diagnostics$(O) \
-	src/driver/lex_actions$(O) \
-	src/driver/parse_actions$(O) \
 	src/ast/context$(O) \
 	src/ast/dump$(O) \
 	src/ast/nodes$(O) \
 	src/ast/string$(O) \
+	src/driver/diagnostics$(O) \
+	src/driver/lex_actions$(O) \
+	src/driver/parse_actions$(O) \
 	src/lang/binding_generation$(O) \
 	src/lang/binding_resolution$(O) \
-	src/lang/lex$(O) \
-	src/lang/parse.tab$(O) \
-	src/lang/token$(O) \
 	src/support/arena$(O) \
 	src/support/bigint$(O) \
 	src/support/encoding$(O) \
@@ -49,7 +46,10 @@ lib_objects = \
 	src/support/hash_map$(O) \
 	src/support/io$(O) \
 	src/support/malloc$(O) \
-	src/support/string_ref$(O)
+	src/support/string_ref$(O) \
+	src/syntax/lex$(O) \
+	src/syntax/parse.tab$(O) \
+	src/syntax/token$(O)
 
 zeno_spec_objects = \
 	$(lib_objects) \
@@ -74,13 +74,14 @@ clean:
 	$(Q)rm -f $(lib_objects)
 	$(Q)rm -f $(zeno_spec_exe) src/driver/main$(O)
 	$(Q)rm -f $(hash_map_test_exe) src/support/hash_map_test$(O)
-	$(Q)rm -f src/lang/parse.output src/lang/parse.tab.c
-	$(Q)rm -f src/ast/*.d src/driver/*.d src/lang/*.d src/support/*.d
+	$(Q)rm -f src/syntax/parse.output src/syntax/parse.tab.c
+	$(Q)rm -f src/ast/*.d src/driver/*.d src/lang/*.d src/support/*.d src/syntax/*.d
 
 -include src/ast/*.d
 -include src/driver/*.d
 -include src/lang/*.d
 -include src/support/*.d
+-include src/syntax/*.d
 
 #
 # Compile targets
@@ -100,10 +101,10 @@ $(zeno_spec_exe): $(zeno_spec_objects)
 	$(Q)mkdir -p $(@D)
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(zeno_spec_objects) $(LIBS)
 
-src/lang/parse.tab.c: src/lang/parse.y
+src/syntax/parse.tab.c: src/syntax/parse.y
 	@echo "YACC $@: $?"
 	$(Q)mkdir -p $(@D)
-	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/lang/parse $?
+	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/syntax/parse $?
 
 #
 # Test executables

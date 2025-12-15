@@ -1,8 +1,8 @@
-#ifndef _ZENO_SPEC_SRC_LEX_H
-#define _ZENO_SPEC_SRC_LEX_H
+#ifndef _ZENO_SPEC_SRC_SYNTAX_LEX_H
+#define _ZENO_SPEC_SRC_SYNTAX_LEX_H
 
 #include "src/ast/source.h"
-#include "src/lang/token.h"
+#include "src/syntax/token.h"
 #include "src/support/stdint.h"
 
 #include <setjmp.h>

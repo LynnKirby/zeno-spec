@@ -2,8 +2,8 @@
 #include "src/ast/dump.h"
 #include "src/driver/diagnostics.h"
 #include "src/lang/binding.h"
-#include "src/lang/lex.h"
-#include "src/lang/parse.h"
+#include "src/syntax/lex.h"
+#include "src/syntax/parse.h"
 #include "src/support/malloc.h"
 
 static int is_binding_action(DriverAction action) {

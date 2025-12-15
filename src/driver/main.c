@@ -1,9 +1,6 @@
 #include "src/driver/actions.h"
 #include "src/driver/diagnostics.h"
-#include "src/lang/lex.h"
-#include "src/lang/parse.h"
 #include "src/support/io.h"
-#include "src/support/malloc.h"
 #include "src/support/string_ref.h"
 
 #include <assert.h>

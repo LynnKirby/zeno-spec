@@ -1,4 +1,4 @@
-#include "src/lang/lex.h"
+#include "src/syntax/lex.h"
 #include "src/lang/limits.h"
 #include "src/support/encoding.h"
 #include "src/support/malloc.h"
