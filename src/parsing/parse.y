@@ -3,15 +3,13 @@
  * Requires byacc or Bison.
  */
 
-%start File
-
 %define api.pure full
 %locations
 %lex-param {ParseContext* context}
 %parse-param {ParseContext* context}
 
 %code top {
-    #include "src/syntax/parse.h"
+    #include "src/parsing/parse.h"
 
     typedef struct ParseContext {
         TokenList const* tokens;
@@ -63,23 +61,27 @@
 %union {
     Item* item;
     Expr* expr;
+    FunctionTypeExpr* func_type;
     AstString string;
     BigInt integer;
 }
 
-%type <item> Item
-%type <item> FunctionItem
+%start file
 
-%type <expr> Block
-%type <expr> Stmt
-%type <expr> ReturnStmt
+%type <item> item
+%type <item> function_item
 
-%type <expr> Expr
-%type <expr> PrimaryExpr
+%type <expr> block
+%type <expr> stmt
+%type <expr> return_stmt
 
-%type <expr> Type
+%type <expr> expr
+%type <expr> primary_expr
 
-%type <expr> ReturnType
+%type <expr> type
+
+%type <expr> return_type
+%type <func_type> function_item_signature
 
 /* Set to 0 so that EndOfFile == YYEOF */
 %token EndOfFile 0
@@ -166,58 +168,62 @@
  * Items
  */
 
-File: Item { SUCCESS($1); }
+file: item { SUCCESS($1); }
 
-Item:
-      FunctionItem { $$ = $1; }
+item:
+      function_item { $$ = $1; }
     | error { EXPECTED(Item, @$); }
 
 /*
  * Statements
  */
 
-Block: LeftCurly Stmt Semicolon RightCurly { $$ = $2; }
+block:
+    LeftCurly stmt Semicolon RightCurly { $$ = $2; }
 
-Stmt:
-      ReturnStmt { $$ = $1; }
+stmt:
+      return_stmt { $$ = $1; }
     | error { EXPECTED(Stmt, @$); }
 
-ReturnStmt:
-    Return Expr
+return_stmt:
+    Return expr
     { $$ = (Expr*)ReturnExpr_new(context->ast, $2); }
 
 /*
  * Expressions
  */
 
-Expr:
-      PrimaryExpr { $$ = $1; }
+expr:
+      primary_expr { $$ = $1; }
     | error { EXPECTED(Expr, @$); }
 
-PrimaryExpr:
-      IntLiteral { $$ = (Expr*)IntLiteralExpr_new(context->ast, $1); }
-    | LeftParen Expr RightParen { $$ = $2; }
+primary_expr:
+      Identifier { $$ = (Expr*)NameExpr_new(context->ast, $1); }
+    | IntLiteral { $$ = (Expr*)IntLiteralExpr_new(context->ast, $1); }
+    | LeftParen expr RightParen { $$ = $2; }
 
 /*
- * Type expressions
+ * Types
  */
 
-Type:
-      Identifier { $$ = (Expr*)IdentifierExpr_new(context->ast, $1); }
-    | error { EXPECTED(Type, @$); }
+type: expr { $$ = $1; }
 
 /*
  * Function-related
  */
 
-ReturnType:
-    ThinArrow Type { $$ = $2; }
+return_type:
+    ThinArrow type { $$ = $2; }
 
-FunctionItem:
-    Def Identifier FunctionItemParams ReturnType Block
-    { $$ = (Item*)FunctionItem_new(context->ast, $2, $4, $5); }
+function_item:
+    Def Identifier function_item_signature block
+    { $$ = (Item*)FunctionItem_new(context->ast, $2, $3, $4); }
 
-FunctionItemParams:
+function_item_signature:
+    function_item_params return_type
+    { $$ = FunctionTypeExpr_new(context->ast, $2); }
+
+function_item_params:
     LeftParen RightParen
 
 %%
@@ -230,7 +236,7 @@ FunctionItemParams:
 
 static void success(ParseContext* context, Item* item) {
     context->result->kind = ParseResultKind_Success;
-    context->result->u.syntax = item;
+    context->result->u.item = item;
 }
 
 static void expected(

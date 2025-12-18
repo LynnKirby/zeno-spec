@@ -1,5 +1,5 @@
-#ifndef _ZENO_SPEC_SRC_SYNTAX_TOKEN_H
-#define _ZENO_SPEC_SRC_SYNTAX_TOKEN_H
+#ifndef _ZENO_SPEC_SRC_PARSING_TOKEN_H
+#define _ZENO_SPEC_SRC_PARSING_TOKEN_H
 
 #include "src/ast/string.h"
 #include "src/support/bigint.h"

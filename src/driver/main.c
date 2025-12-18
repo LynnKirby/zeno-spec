@@ -64,15 +64,15 @@ int main(int argc, char const* const* argv) {
                 action = DriverAction_CheckParseInvalid;
                 continue;
             }
-            if (strcmp(arg, "--dump-binding") == 0) {
+            if (strcmp(arg, "--dump-types") == 0) {
                 assert(0 && "not implemented");
             }
-            if (strcmp(arg, "--check-binding") == 0) {
-                action = DriverAction_CheckBinding;
+            if (strcmp(arg, "--check-types") == 0) {
+                action = DriverAction_CheckTypes;
                 continue;
             }
-            if (strcmp(arg, "--check-binding-invalid") == 0) {
-                action = DriverAction_CheckBindingInvalid;
+            if (strcmp(arg, "--check-types-invalid") == 0) {
+                action = DriverAction_CheckTypesInvalid;
                 continue;
             }
             Writer_format(
@@ -142,11 +142,11 @@ int main(int argc, char const* const* argv) {
         case DriverAction_CheckParseInvalid:
             res = check_parse_invalid_action(ast, source);
             break;
-        case DriverAction_CheckBinding:
-            res = check_binding_action(ast, source);
+        case DriverAction_CheckTypes:
+            res = check_types_action(ast, source);
             break;
-        case DriverAction_CheckBindingInvalid:
-            res = check_binding_invalid_action(ast, source);
+        case DriverAction_CheckTypesInvalid:
+            res = check_types_invalid_action(ast, source);
             break;
         case DriverAction_Unknown:
             assert(0 && "unreachable");

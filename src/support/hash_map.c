@@ -75,6 +75,16 @@ static uint32_t get_internal(
     }
 }
 
+static void reset_buckets(HashMap* map) {
+    if (map->buckets_count < UINT8_MAX) {
+        memset(map->buckets, 0, map->buckets_count);
+    } else if (map->buckets_count < UINT16_MAX) {
+        memset(map->buckets, 0, map->buckets_count * 2);
+    } else {
+        memset(map->buckets, 0, map->buckets_count * 4);
+    }
+}
+
 static void maybe_resize(HashMap* map, HashMapConfig const* config) {
     uint32_t id;
 
@@ -90,14 +100,13 @@ static void maybe_resize(HashMap* map, HashMapConfig const* config) {
 
     if (map->buckets_count < UINT8_MAX) {
         map->buckets = xallocarray(map->buckets_count, 1);
-        memset(map->buckets, 0, map->buckets_count);
     } else if (map->buckets_count < UINT16_MAX) {
         map->buckets = xallocarray(map->buckets_count, 2);
-        memset(map->buckets, 0, map->buckets_count * 2);
     } else {
         map->buckets = xallocarray(map->buckets_count, 4);
-        memset(map->buckets, 0, map->buckets_count * 4);
     }
+
+    reset_buckets(map);
 
     for (id = 1; id <= map->entries_count; id += 1) {
         char* entry;
@@ -124,6 +133,11 @@ void HashMap_init(HashMap* map, HashMapConfig const* config) {
 void HashMap_destroy(HashMap* map) {
     xfree(map->entries);
     xfree(map->buckets);
+}
+
+void HashMap_reset(HashMap* map) {
+    map->entries_count = 0;
+    reset_buckets(map);
 }
 
 uint32_t HashMap_set(

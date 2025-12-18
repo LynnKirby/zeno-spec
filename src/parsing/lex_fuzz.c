@@ -1,4 +1,4 @@
-#include "src/syntax/lex.h"
+#include "src/parsing/lex.h"
 #include "src/support/malloc.h"
 
 int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size) {

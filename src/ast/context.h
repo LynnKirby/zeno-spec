@@ -3,6 +3,7 @@
 
 #include "src/ast/source.h"
 #include "src/ast/string.h"
+#include "src/ast/nodes.h"
 #include "src/support/io.h"
 
 typedef struct AstContext AstContext;
@@ -34,5 +35,11 @@ AstString AstContext_add_string(AstContext* ast, StringRef value);
 
 /** Allocate data owned by the context. */
 void* AstContext_allocate(AstContext* ast, size_t size);
+
+/** Get a cached SimpleType instance. */
+SimpleType* AstContext_simple_type(AstContext* ast, SimpleTypeKind kind);
+
+/** Get a cached SimpleTypeExpr instance. */
+SimpleTypeExpr* AstContext_simple_type_expr(AstContext* ast, SimpleTypeKind kind);
 
 #endif

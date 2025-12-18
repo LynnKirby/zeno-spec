@@ -38,8 +38,10 @@ lib_objects = \
 	src/driver/diagnostics$(O) \
 	src/driver/lex_actions$(O) \
 	src/driver/parse_actions$(O) \
-	src/lang/binding_generation$(O) \
-	src/lang/binding_resolution$(O) \
+	src/parsing/lex$(O) \
+	src/parsing/parse.tab$(O) \
+	src/sema/decl_map$(O) \
+	src/sema/type_checking$(O) \
 	src/support/arena$(O) \
 	src/support/bigint$(O) \
 	src/support/encoding$(O) \
@@ -48,9 +50,7 @@ lib_objects = \
 	src/support/io$(O) \
 	src/support/malloc$(O) \
 	src/support/string_ref$(O) \
-	src/syntax/lex$(O) \
-	src/syntax/parse.tab$(O) \
-	src/syntax/token$(O)
+	src/parsing/token$(O)
 
 zeno_spec_objects = \
 	$(lib_objects) \
@@ -58,7 +58,7 @@ zeno_spec_objects = \
 
 zeno_spec_exe = zeno-spec$(E)
 
-lex_fuzz_objects = $(lib_objects) src/syntax/lex_fuzz$(O)
+lex_fuzz_objects = $(lib_objects) src/parsing/lex_fuzz$(O)
 lex_fuzz_exe = lex_fuzz$(E)
 
 hash_map_test_objects = $(lib_objects) src/support/hash_map_test$(O)
@@ -74,15 +74,15 @@ clean:
 	@echo "CLEAN"
 	$(Q)rm -f $(lib_objects)
 	$(Q)rm -f $(zeno_spec_exe) src/driver/main$(O)
-	$(Q)rm -f $(lex_fuzz_exe) src/syntax/lex_fuzz$(O)
+	$(Q)rm -f $(lex_fuzz_exe) src/parsing/lex_fuzz$(O)
 	$(Q)rm -f $(hash_map_test_exe) src/support/hash_map_test$(O)
-	$(Q)rm -f src/syntax/parse.output src/syntax/parse.tab.c
+	$(Q)rm -f src/parsing/parse.output src/parsing/parse.tab.c
 
 -include src/ast/*.d
 -include src/driver/*.d
 -include src/lang/*.d
 -include src/support/*.d
--include src/syntax/*.d
+-include src/parsing/*.d
 
 #
 # Compile targets
@@ -102,10 +102,10 @@ $(zeno_spec_exe): $(zeno_spec_objects)
 	$(Q)mkdir -p $(@D)
 	$(Q)$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(zeno_spec_objects) $(LIBS)
 
-src/syntax/parse.tab.c: src/syntax/parse.y
+src/parsing/parse.tab.c: src/parsing/parse.y
 	@echo "YACC $@: $?"
 	$(Q)mkdir -p $(@D)
-	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/syntax/parse $?
+	$(Q)LC_ALL=C $(YACC) $(YFLAGS) -b src/parsing/parse $?
 
 #
 # Fuzz executables
@@ -132,13 +132,13 @@ $(hash_map_test_exe): $(hash_map_test_objects)
 #
 
 # TODO: an actual test framework
-test: test-lex test-binding test-hash-map
+test: test-lex test-types test-hash-map
 
 test-lex: test-lex-valid test-lex-invalid
 
 CHECK_LEX_VALID = $(Q)./$(zeno_spec_exe) --check-lex $(srcdir)/tests/lex/valid
 CHECK_LEX_INVALID = $(Q)./$(zeno_spec_exe) --check-lex-invalid $(srcdir)/tests/lex/invalid
-CHECK_BINDING_INVALID = $(Q)./$(zeno_spec_exe) --check-binding-invalid $(srcdir)/tests/binding/invalid
+CHECK_TYPES_INVALID = $(Q)./$(zeno_spec_exe) --check-types-invalid $(srcdir)/tests/binding/invalid
 
 test-lex-valid: $(zeno_spec_exe)
 	@echo "TEST lex-valid"
@@ -169,11 +169,11 @@ test-lex-invalid: $(zeno_spec_exe)
 	$(CHECK_LEX_INVALID)/hex_literal_trailing_underscore.zn
 	$(CHECK_LEX_INVALID)/unclosed_block_comment.zn
 
-test-binding: test-binding-invalid
+test-types: test-types-invalid
 
-test-binding-invalid: $(zeno_spec_exe)
-	@echo "TEST binding-invalid"
-	$(CHECK_BINDING_INVALID)/undefined_return_type.zn
+test-types-invalid: $(zeno_spec_exe)
+	@echo "TEST types-invalid"
+	$(CHECK_TYPES_INVALID)/undefined_return_type.zn
 
 test-hash-map: $(hash_map_test_exe)
 	@echo "TEST hash-map"

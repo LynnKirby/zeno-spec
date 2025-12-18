@@ -12,8 +12,8 @@ typedef enum DriverAction {
     DriverAction_DumpParse,
     DriverAction_CheckParse,
     DriverAction_CheckParseInvalid,
-    DriverAction_CheckBinding,
-    DriverAction_CheckBindingInvalid
+    DriverAction_CheckTypes,
+    DriverAction_CheckTypesInvalid
 } DriverAction;
 
 int dump_lex_action(AstContext* ast, SourceFile const* source);
@@ -24,7 +24,7 @@ int dump_parse_action(AstContext* ast, SourceFile const* source);
 int check_parse_action(AstContext* ast, SourceFile const* source);
 int check_parse_invalid_action(AstContext* ast, SourceFile const* source);
 
-int check_binding_action(AstContext* ast, SourceFile const* source);
-int check_binding_invalid_action(AstContext* ast, SourceFile const* source);
+int check_types_action(AstContext* ast, SourceFile const* source);
+int check_types_invalid_action(AstContext* ast, SourceFile const* source);
 
 #endif

@@ -1,5 +1,5 @@
 #include "src/driver/diagnostics.h"
-#include "src/lang/binding.h"
+#include "src/sema/type_checking.h"
 
 static void write_lex_error_description(Writer* writer, LexError const* error) {
     switch (error->kind) {
@@ -103,11 +103,22 @@ void write_yacc_error(Writer* writer, ByteStringRef message) {
     Writer_format(writer, "\n");
 }
 
-void write_undefined_identifier_error(
-    Writer* writer, StringRef path, UndefinedIdentifier* error
+void write_undeclared_name_error(
+    Writer* writer, StringRef path, UndeclaredName const* error
 ) {
     write_error_prefix(writer, path, error->pos);
     Writer_format(writer, "undefined identifier `");
-    Writer_write_str(writer, error->value);
+    Writer_write_str(writer, error->name);
+    Writer_format(writer, "`\n");
+}
+
+void write_expected_type_error(
+    Writer* writer, StringRef path, ExpectedType const* error
+) {
+    write_error_prefix(writer, path, error->pos);
+    Writer_format(writer, "expected type `");
+    Writer_write_str(writer, Type_name(error->expected));
+    Writer_format(writer, "` but found `");
+    Writer_write_str(writer, Type_name(error->actual));
     Writer_format(writer, "`\n");
 }

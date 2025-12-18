@@ -50,6 +50,8 @@ void HashMap_init(HashMap* map, HashMapConfig const* config);
 
 void HashMap_destroy(HashMap* map);
 
+void HashMap_reset(HashMap* map);
+
 uint32_t HashMap_set(
     HashMap* map,
     HashMapConfig const* config,

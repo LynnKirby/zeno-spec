@@ -1,4 +1,4 @@
-#include "src/syntax/token.h"
+#include "src/parsing/token.h"
 
 #include <assert.h>
 

@@ -1,15 +1,15 @@
 #include "src/driver/actions.h"
 #include "src/ast/dump.h"
 #include "src/driver/diagnostics.h"
-#include "src/lang/binding.h"
-#include "src/syntax/lex.h"
-#include "src/syntax/parse.h"
+#include "src/parsing/lex.h"
+#include "src/parsing/parse.h"
+#include "src/sema/type_checking.h"
 #include "src/support/malloc.h"
 
-static int is_binding_action(DriverAction action) {
+static int is_type_check_action(DriverAction action) {
     switch (action) {
-    case DriverAction_CheckBinding:
-    case DriverAction_CheckBindingInvalid:
+    case DriverAction_CheckTypes:
+    case DriverAction_CheckTypesInvalid:
         return true;
     default:
         return false;
@@ -38,7 +38,9 @@ static int parse_action(
     switch (parse_result.kind) {
     case ParseResultKind_Success:
         if (action == DriverAction_DumpParse) {
-            Item_dump(parse_result.u.syntax, Writer_stdout);
+            FunctionItem_dump(
+                (FunctionItem*)parse_result.u.item, Writer_stdout
+            );
         } else if (action == DriverAction_CheckParseInvalid) {
             res = 1;
         }
@@ -56,22 +58,28 @@ static int parse_action(
     }
 
     /* FIXME: move this */
-    if (res == 0 && is_binding_action(action)) {
-        SymbolBindingResult binding_result;
-        symbol_binding(
-            &binding_result, ast, (FunctionItem*)parse_result.u.syntax
-        );
+    if (res == 0 && is_type_check_action(action)) {
+        TypeCheckResult type_check_result;
+        type_check(&type_check_result, ast, (FunctionItem*)parse_result.u.item);
 
-        switch (binding_result.kind) {
-        case SymbolBindingResultKind_Success:
-            if (action == DriverAction_CheckBindingInvalid) {
+        switch (type_check_result.kind) {
+        case TypeCheckResultKind_Success:
+            if (action == DriverAction_CheckTypesInvalid) {
                 res = 1;
             }
             break;
-        case SymbolBindingResultKind_UndefinedIdentifier:
-            if (action != DriverAction_CheckBindingInvalid) {
-                write_undefined_identifier_error(
-                    Writer_stderr, path, &binding_result.u.undefined_identifier
+        case TypeCheckResultKind_UndeclaredName:
+            if (action != DriverAction_CheckTypesInvalid) {
+                write_undeclared_name_error(
+                    Writer_stderr, path, &type_check_result.as.undeclared_name
+                );
+                res = 1;
+            }
+            break;
+        case TypeCheckResultKind_ExpectedType:
+            if (action != DriverAction_CheckTypesInvalid) {
+                write_expected_type_error(
+                    Writer_stderr, path, &type_check_result.as.expected_type
                 );
                 res = 1;
             }
@@ -94,10 +102,10 @@ int check_parse_invalid_action(AstContext* ast, SourceFile const* source) {
     return parse_action(ast, source, DriverAction_CheckParseInvalid);
 }
 
-int check_binding_action(AstContext* ast, SourceFile const* source) {
-    return parse_action(ast, source, DriverAction_CheckBinding);
+int check_types_action(AstContext* ast, SourceFile const* source) {
+    return parse_action(ast, source, DriverAction_CheckTypes);
 }
 
-int check_binding_invalid_action(AstContext* ast, SourceFile const* source) {
-    return parse_action(ast, source, DriverAction_CheckBindingInvalid);
+int check_types_invalid_action(AstContext* ast, SourceFile const* source) {
+    return parse_action(ast, source, DriverAction_CheckTypesInvalid);
 }

@@ -1,8 +1,9 @@
-#ifndef _ZENO_SPEC_SRC_SYNTAX_PARSE_H
-#define _ZENO_SPEC_SRC_SYNTAX_PARSE_H
+#ifndef _ZENO_SPEC_SRC_PARSING_PARSE_H
+#define _ZENO_SPEC_SRC_PARSING_PARSE_H
 
+#include "src/ast/context.h"
 #include "src/ast/nodes.h"
-#include "src/syntax/token.h"
+#include "src/parsing/token.h"
 #include "src/support/string_ref.h"
 
 typedef enum ParseResultKind {
@@ -33,7 +34,7 @@ typedef struct ParseError {
 typedef struct ParseResult {
     ParseResultKind kind;
     union {
-        Item* syntax;
+        Item* item;
         ParseError parse_error;
         ByteStringRef yacc_error;
     } u;

@@ -4,6 +4,7 @@
 #include "src/support/hash_map.h"
 #include "src/support/malloc.h"
 
+#include <assert.h>
 #include <string.h>
 
 static HashMapConfig string_set_config = HASH_SET_CONFIG(
@@ -20,6 +21,10 @@ struct AstContext {
     SourceFile const** files_data;
     size_t files_size;
     size_t files_capacity;
+
+    /* Cached types */
+    SimpleType simple_types[SimpleTypeKind_COUNT];
+    SimpleTypeExpr simple_type_exprs[SimpleTypeKind_COUNT];
 };
 
 AstContext* AstContext_new(void) {
@@ -32,6 +37,18 @@ AstContext* AstContext_new(void) {
     ast->files_data  = NULL;
     ast->files_size = 0;
     ast->files_capacity = 0;
+
+    /* Construct simple types. */
+    {
+        int i;
+        for (i = 0; i < SimpleTypeKind_COUNT; i += 1) {
+            ast->simple_types[i].base.kind = TypeKind_Simple;
+            ast->simple_types[i].kind = i;
+
+            ast->simple_type_exprs[i].base.kind = ExprKind_SimpleType;
+            ast->simple_type_exprs[i].kind = i;
+        }
+    }
 
     return ast;
 }
@@ -131,4 +148,18 @@ SourceFile const* AstContext_source_from_bytes(
     copy[size] = 0;
 
     return add_file(ast, path, copy, size);
+}
+
+SimpleType* AstContext_simple_type(AstContext* ast, SimpleTypeKind kind) {
+    assert(kind >= 0);
+    assert(kind < SimpleTypeKind_COUNT);
+    return &ast->simple_types[kind];
+}
+
+SimpleTypeExpr* AstContext_simple_type_expr(
+    AstContext* ast, SimpleTypeKind kind
+) {
+    assert(kind >= 0);
+    assert(kind < SimpleTypeKind_COUNT);
+    return &ast->simple_type_exprs[kind];
 }

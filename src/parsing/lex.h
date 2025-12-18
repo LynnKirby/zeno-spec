@@ -1,10 +1,10 @@
-#ifndef _ZENO_SPEC_SRC_SYNTAX_LEX_H
-#define _ZENO_SPEC_SRC_SYNTAX_LEX_H
+#ifndef _ZENO_SPEC_SRC_PARSING_LEX_H
+#define _ZENO_SPEC_SRC_PARSING_LEX_H
 
 #include "src/ast/context.h"
 #include "src/ast/source.h"
 #include "src/support/stdint.h"
-#include "src/syntax/token.h"
+#include "src/parsing/token.h"
 
 #include <setjmp.h>
 

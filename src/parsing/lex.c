@@ -1,5 +1,5 @@
-#include "src/syntax/lex.h"
-#include "src/lang/limits.h"
+#include "src/parsing/lex.h"
+#include "src/parsing/limits.h"
 #include "src/support/encoding.h"
 #include "src/support/malloc.h"
 
