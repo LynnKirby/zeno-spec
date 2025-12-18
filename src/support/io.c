@@ -123,6 +123,15 @@ SystemIoError SystemFile_write(SystemFile file, void const* data, size_t size) {
     }
 }
 
+SystemIoError SystemFile_close(SystemFile file) {
+    for (;;) {
+        if (close(file) != 0) {
+            if (errno == EINTR) continue;
+            return errno;
+        }
+    }
+}
+
 SystemIoError SystemFile_open_read(SystemFile* file, char const* path) {
     int fd;
     int flags = O_RDONLY | O_NOCTTY;

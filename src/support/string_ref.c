@@ -15,6 +15,10 @@ int StringRef_equal(StringRef left, StringRef right) {
         && (memcmp(left.data, right.data, left.size) == 0);
 }
 
+int StringRef_equal_zstr(StringRef left, char const* right) {
+    return StringRef_equal(left, StringRef_from_zstr(right));
+}
+
 uint32_t StringRef_hash(StringRef string) {
     return fnv1a_add(fnv1a_start(), string.data, string.size);
 }

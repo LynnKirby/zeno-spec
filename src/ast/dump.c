@@ -27,6 +27,7 @@ void Type_dump(Type const* type, Writer* writer) {
     );                                                             \
     void name##Item_dump(name##Item const* item, Writer* writer) { \
         name##Item_dump_internal(item, writer, 0);                 \
+        Writer_format(writer, "\n");                               \
     }
 ITEM_KIND_LIST(X)
 #undef X
@@ -37,6 +38,7 @@ ITEM_KIND_LIST(X)
     );                                                             \
     void name##Expr_dump(name##Expr const* expr, Writer* writer) { \
         name##Expr_dump_internal(expr, writer, 0);                 \
+        Writer_format(writer, "\n");                               \
     }
 EXPR_KIND_LIST(X)
 #undef X
@@ -47,6 +49,7 @@ EXPR_KIND_LIST(X)
     );                                                             \
     void name##Type_dump(name##Type const* type, Writer* writer) { \
         name##Type_dump_internal(type, writer, 0);                 \
+        Writer_format(writer, "\n");                               \
     }
 TYPE_KIND_LIST(X)
 #undef X

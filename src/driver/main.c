@@ -1,5 +1,4 @@
-#include "src/driver/actions.h"
-#include "src/driver/diagnostics.h"
+#include "src/driver/commands.h"
 #include "src/support/io.h"
 #include "src/support/string_ref.h"
 
@@ -7,153 +6,79 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void note(char const* format, ...) {
-    va_list args;
-    va_start(args, format);
-    Writer_format(Writer_stderr, "zeno-spec: note: ");
-    Writer_vformat(Writer_stderr, format, args);
-    Writer_format(Writer_stderr, "\n");
-    va_end(args);
+typedef enum Command {
+    Command_Tokenize,
+    Command_Parse,
+    Command_Check
+} Command;
+
+static StringRef get_progname(int argc, char const* const* argv) {
+    StringRef progname = STATIC_STRING_REF("zeno-spec");
+
+    if (argc > 0) {
+        char* slash_pos;
+        slash_pos = strrchr(argv[0], '/');
+        if (slash_pos != NULL) {
+            /* TODO: make sure this is actually utf8 */
+            StringRef from_argv0;
+            from_argv0 = StringRef_from_zstr(slash_pos + 1);
+            if (from_argv0.size > 0) {
+                return from_argv0;
+            }
+        }
+    }
+
+    return progname;
 }
 
-static void error(char const* format, ...) {
-    va_list args;
-    va_start(args, format);
-    Writer_format(Writer_stderr, "zeno-spec: error: ");
-    Writer_vformat(Writer_stderr, format, args);
-    Writer_format(Writer_stderr, "\n");
-    va_end(args);
+static int get_command(
+    Command* command, StringRef progname, int argc, char const* const* argv
+) {
+    if (argc > 1) {
+        StringRef arg;
+        arg = StringRef_from_zstr(argv[1]);
+        if (StringRef_equal_zstr(arg, "tokenize")) {
+            *command = Command_Tokenize;
+            return 0;
+        } else if (StringRef_equal_zstr(arg, "parse")) {
+            *command = Command_Parse;
+            return 0;
+        } else if (StringRef_equal_zstr(arg, "check")) {
+            *command = Command_Check;
+            return 0;
+        } else {
+            Writer_write_str(Writer_stderr, progname);
+            Writer_format(
+                Writer_stderr, ": error: `%s` is not a command\n", arg.data
+            );
+        }
+    } else {
+        Writer_write_str(Writer_stderr, progname);
+        Writer_format(Writer_stderr, ": error: command must be specified\n");
+    }
+
+    return 1;
 }
 
 int main(int argc, char const* const* argv) {
     int res;
-    StringRef path = {0};
-    SystemFile file;
-    DriverAction action = DriverAction_Unknown;
+    StringRef progname;
+    Command command;
 
-    {
-        int i;
-        for (i = 1; i < argc; i += 1) {
-            char const* arg;
-            arg = argv[i];
-            if (arg[0] != '-' || arg[1] == 0) {
-                path = StringRef_from_zstr(arg);
-                continue;
-            }
-            if (strcmp(arg, "--dump-lex") == 0) {
-                action = DriverAction_DumpLex;
-                continue;
-            }
-            if (strcmp(arg, "--check-lex") == 0) {
-                action = DriverAction_CheckLex;
-                continue;
-            }
-            if (strcmp(arg, "--check-lex-invalid") == 0) {
-                action = DriverAction_CheckLexInvalid;
-                continue;
-            }
-            if (strcmp(arg, "--dump-parse") == 0) {
-                action = DriverAction_DumpParse;
-                continue;
-            }
-            if (strcmp(arg, "--check-parse") == 0) {
-                action = DriverAction_CheckParse;
-                continue;
-            }
-            if (strcmp(arg, "--check-parse-invalid") == 0) {
-                action = DriverAction_CheckParseInvalid;
-                continue;
-            }
-            if (strcmp(arg, "--dump-types") == 0) {
-                assert(0 && "not implemented");
-            }
-            if (strcmp(arg, "--check-types") == 0) {
-                action = DriverAction_CheckTypes;
-                continue;
-            }
-            if (strcmp(arg, "--check-types-invalid") == 0) {
-                action = DriverAction_CheckTypesInvalid;
-                continue;
-            }
-            Writer_format(
-                Writer_stderr, "zeno-spec: error: unknown flag '%s'\n", arg
-            );
-            return 1;
-        }
+    progname = get_progname(argc, argv);
+    res = get_command(&command, progname, argc, argv);
+    if (res != 0) return res;
+
+    switch (command) {
+    case Command_Tokenize:
+        return tokenize_command(progname, argc - 2, argv + 2);
+
+    case Command_Parse:
+        return parse_command(progname, argc - 2, argv + 2);
+
+    case Command_Check:
+        return check_command(progname, argc - 2, argv + 2);
     }
 
-    if (path.size == 0) {
-        error("no input files");
-        return 1;
-    }
-
-    if (action == DriverAction_Unknown) {
-        error("action not specified");
-        return 1;
-    }
-
-    if (path.size == 1 && path.data[0] == '-') {
-        path = StringRef_from_zstr("<stdin>");
-        file = SystemFile_stdin;
-
-        if (SystemFile_isatty(file)) {
-            note("reading from stdin");
-        }
-    } else {
-        SystemIoError io_res;
-        io_res = SystemFile_open_read(&file, (char const*)path.data); /*FIXME*/
-        if (io_res != SystemIoError_Success) {
-            error("could not open '%s': system error %u", path, io_res);
-            return 1;
-        }
-    }
-
-    {
-        AstContext* ast;
-        SystemIoError io_res;
-        SourceFile const* source;
-
-        ast = AstContext_new();
-
-        io_res = AstContext_source_from_file(ast, path, file, &source);
-
-        if (io_res != SystemIoError_Success) {
-            error("could not read '%s': system error %u", path, io_res);
-            AstContext_delete(ast);
-            return 1;
-        }
-
-        switch (action) {
-        case DriverAction_DumpLex:
-            res = dump_lex_action(ast, source);
-            break;
-        case DriverAction_CheckLex:
-            res = check_lex_action(ast, source);
-            break;
-        case DriverAction_CheckLexInvalid:
-            res = check_lex_invalid_action(ast, source);
-            break;
-        case DriverAction_DumpParse:
-            res = dump_parse_action(ast, source);
-            break;
-        case DriverAction_CheckParse:
-            res = check_parse_action(ast, source);
-            break;
-        case DriverAction_CheckParseInvalid:
-            res = check_parse_invalid_action(ast, source);
-            break;
-        case DriverAction_CheckTypes:
-            res = check_types_action(ast, source);
-            break;
-        case DriverAction_CheckTypesInvalid:
-            res = check_types_invalid_action(ast, source);
-            break;
-        case DriverAction_Unknown:
-            assert(0 && "unreachable");
-        }
-
-        AstContext_delete(ast);
-    }
-
-    return res;
+    assert(0);
 }

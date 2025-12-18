@@ -36,8 +36,7 @@ lib_objects = \
 	src/ast/source$(O) \
 	src/ast/string$(O) \
 	src/driver/diagnostics$(O) \
-	src/driver/lex_actions$(O) \
-	src/driver/parse_actions$(O) \
+	src/driver/commands$(O) \
 	src/parsing/lex$(O) \
 	src/parsing/parse.tab$(O) \
 	src/sema/decl_map$(O) \
@@ -136,9 +135,9 @@ test: test-lex test-types test-hash-map
 
 test-lex: test-lex-valid test-lex-invalid
 
-CHECK_LEX_VALID = $(Q)./$(zeno_spec_exe) --check-lex $(srcdir)/tests/lex/valid
-CHECK_LEX_INVALID = $(Q)./$(zeno_spec_exe) --check-lex-invalid $(srcdir)/tests/lex/invalid
-CHECK_TYPES_INVALID = $(Q)./$(zeno_spec_exe) --check-types-invalid $(srcdir)/tests/binding/invalid
+CHECK_LEX_VALID = $(Q)./$(zeno_spec_exe) tokenize --quiet -- $(srcdir)/tests/lex/valid
+CHECK_LEX_INVALID = $(Q)./$(zeno_spec_exe) tokenize --quiet --expect-failure -- $(srcdir)/tests/lex/invalid
+CHECK_TYPES_INVALID = $(Q)./$(zeno_spec_exe) check --quiet --expect-failure $(srcdir)/tests/binding/invalid
 
 test-lex-valid: $(zeno_spec_exe)
 	@echo "TEST lex-valid"

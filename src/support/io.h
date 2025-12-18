@@ -37,6 +37,8 @@ SystemIoError SystemFile_write(
 
 SystemIoError SystemFile_open_read(SystemFile* file, char const* path);
 
+SystemIoError SystemFile_close(SystemFile file);
+
 int SystemFile_isatty(SystemFile file);
 
 SystemIoError SystemFile_read_all(SystemFile file, void** data, size_t* size);

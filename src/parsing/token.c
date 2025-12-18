@@ -36,13 +36,8 @@ StringRef LexErrorKind_name(LexErrorKind kind) {
 }
 
 void Token_dump(Token const* token, Writer* writer) {
-    Writer_format(
-        writer,
-        "Token(kind = .%s, position = <%u:%u>",
-        TokenKind_name(token->kind),
-        token->pos.line,
-        token->pos.column
-    );
+    Writer_format(writer, "Token(kind = .");
+    Writer_write_str(writer, TokenKind_name(token->kind));
 
     switch (token->kind) {
     case TokenKind_IntLiteral:
@@ -59,6 +54,10 @@ void Token_dump(Token const* token, Writer* writer) {
     default:
         break;
     }
+
+    Writer_format(
+        writer, ", position = <%u:%u>", token->pos.line, token->pos.column
+    );
 
     Writer_format(writer, ")\n");
 }

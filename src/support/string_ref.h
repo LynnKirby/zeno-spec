@@ -25,6 +25,8 @@ StringRef StringRef_from_zstr(char const* s);
 int StringRef_equal(StringRef left, StringRef right);
 uint32_t StringRef_hash(StringRef string);
 
+int StringRef_equal_zstr(StringRef left, char const* right);
+
 uint32_t StringRef_hash_generic(void const* key);
 int StringRef_equal_generic(void const* left, void const* right);
 
