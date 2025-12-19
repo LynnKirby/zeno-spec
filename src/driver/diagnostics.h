@@ -3,32 +3,32 @@
 
 #include "src/parsing/parse.h"
 #include "src/parsing/token.h"
-#include "src/support/io.h"
+#include "src/basic/diagnostic.h"
 
 struct UndeclaredName;
 struct ExpectedType;
 
 /** Write error message from LexError. */
 void write_lex_error(
-    Writer* writer, StringRef path, LexError const* error
+    DiagnosticEngine* diagnostics, StringRef path, LexError const* error
 );
 
 /** Write error message from ParseError. */
-void write_parse_error(
-    Writer* writer, StringRef path, ParseError const* error
+void report_parse_error(
+    DiagnosticEngine* diagnostics, StringRef path, ParseError const* error
 );
 
 /** Write error message returned by yacc. */
-void write_yacc_error(Writer* writer, ByteStringRef message);
+void report_yacc_error(DiagnosticEngine* diagnostics, ByteStringRef message);
 
 /** Report undefined identifier. */
-void write_undeclared_name_error(
-    Writer* writer, StringRef path, struct UndeclaredName const* error
+void report_undeclared_name(
+    DiagnosticEngine* diagnostics, StringRef path, struct UndeclaredName const* error
 );
 
 /** Report mismatched type. */
-void write_expected_type_error(
-    Writer* writer, StringRef path, struct ExpectedType const* error
+void report_type_mismatch(
+    DiagnosticEngine* diagnostics, StringRef path, struct ExpectedType const* error
 );
 
 #endif

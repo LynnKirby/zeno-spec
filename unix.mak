@@ -35,13 +35,16 @@ lib_objects = \
 	src/ast/nodes$(O) \
 	src/ast/source$(O) \
 	src/ast/string$(O) \
-	src/driver/diagnostics$(O) \
+	src/basic/diagnostic$(O) \
 	src/driver/commands$(O) \
+	src/driver/diagnostics$(O) \
+	src/driver/terminal_diagnostic_consumer$(O) \
 	src/parsing/lex$(O) \
 	src/parsing/parse.tab$(O) \
 	src/sema/decl_map$(O) \
 	src/sema/type_checking$(O) \
 	src/support/arena$(O) \
+	src/support/array_writer$(O) \
 	src/support/bigint$(O) \
 	src/support/encoding$(O) \
 	src/support/format$(O) \

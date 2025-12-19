@@ -1,4 +1,6 @@
 #include "src/driver/commands.h"
+#include "src/basic/diagnostic.h"
+#include "src/driver/terminal_diagnostic_consumer.h"
 #include "src/support/io.h"
 #include "src/support/string_ref.h"
 
@@ -12,7 +14,7 @@ typedef enum Command {
     Command_Check
 } Command;
 
-static StringRef get_progname(int argc, char const* const* argv) {
+static StringRef get_program_name(int argc, char const* const* argv) {
     StringRef progname = STATIC_STRING_REF("zeno-spec");
 
     if (argc > 0) {
@@ -62,23 +64,40 @@ static int get_command(
 
 int main(int argc, char const* const* argv) {
     int res;
-    StringRef progname;
+    StringRef program_name;
     Command command;
+    TerminalDiagnosticConsumer diagnostic_consumer;
+    DiagnosticEngine* diagnostics;
 
-    progname = get_progname(argc, argv);
-    res = get_command(&command, progname, argc, argv);
-    if (res != 0) return res;
+    program_name = get_program_name(argc, argv);
 
-    switch (command) {
-    case Command_Tokenize:
-        return tokenize_command(progname, argc - 2, argv + 2);
+    TerminalDiagnosticConsumer_init(
+        &diagnostic_consumer, Writer_stderr, program_name
+    );
+    diagnostics = DiagnosticEngine_new(&diagnostic_consumer.base);
 
-    case Command_Parse:
-        return parse_command(progname, argc - 2, argv + 2);
+    res = get_command(&command, program_name, argc, argv);
 
-    case Command_Check:
-        return check_command(progname, argc - 2, argv + 2);
+    if (res == 0) {
+        switch (command) {
+        case Command_Tokenize:
+            tokenize_command(diagnostics, argc - 2, argv + 2);
+            break;
+
+        case Command_Parse:
+            parse_command(diagnostics, argc - 2, argv + 2);
+            break;
+
+        case Command_Check:
+            check_command(diagnostics, argc - 2, argv + 2);
+            break;
+        }
+
+        res = DiagnosticEngine_has_errors(diagnostics) ? 1 : 0;
     }
 
-    assert(0);
+    DiagnosticEngine_delete(diagnostics);
+    TerminalDiagnosticConsumer_destroy(&diagnostic_consumer);
+
+    return res;
 }

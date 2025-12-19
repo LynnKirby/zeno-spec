@@ -20,9 +20,141 @@ typedef struct Options {
     int expect_failure;
 } Options;
 
-static int parse_options(
+static void report_multiple_input_files(DiagnosticEngine* diagnostics) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_Driver);
+
+    Writer_write_zstr(writer, "multiple input files");
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void report_unknown_flag(DiagnosticEngine* diagnostics, StringRef flag) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_Driver);
+
+    Writer_write_zstr(writer, "unknown flag `");
+    Writer_write_str(writer, flag);
+    Writer_write_zstr(writer, "`");
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void report_no_input_file(DiagnosticEngine* diagnostics) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_Driver);
+
+    Writer_write_zstr(writer, "no input file");
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void report_tokenize_unexpected_success(DiagnosticEngine* diagnostics) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_Driver);
+
+    Writer_write_zstr(writer, "expected tokenize error");
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void report_parse_unexpected_success(DiagnosticEngine* diagnostics) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_Driver);
+
+    Writer_write_zstr(writer, "expected parse error");
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void report_check_unexpected_success(DiagnosticEngine* diagnostics) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_Driver);
+
+    Writer_write_zstr(writer, "expected static checking error");
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void report_open_error(
+    DiagnosticEngine* diagnostics, StringRef path, SystemIoError error
+) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_System);
+
+    Writer_write_zstr(writer, "could not open `");
+    Writer_write_str(writer, path);
+    Writer_write_zstr(writer, "`; system error ");
+    Writer_write_int(writer, error, 10);
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void report_read_error(
+    DiagnosticEngine* diagnostics, StringRef path, SystemIoError error
+) {
+    DiagnosticBuilder* diag;
+    Writer* writer;
+
+    diag = DiagnosticEngine_start_diagnostic(diagnostics);
+    writer = DiagnosticBuilder_get_writer(diag);
+
+    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_category(diag, DiagnosticCategory_System);
+
+    Writer_write_zstr(writer, "could not read `");
+    Writer_write_str(writer, path);
+    Writer_write_zstr(writer, "`; system error ");
+    Writer_write_int(writer, error, 10);
+
+    DiagnosticBuilder_emit(diag);
+}
+
+static void parse_options(
     Options* options,
-    StringRef progname,
+    DiagnosticEngine* diagnostics,
     int argc,
     char const* const* argv
 ) {
@@ -34,7 +166,6 @@ static int parse_options(
 
     while (argc > 0) {
         StringRef arg;
-
         arg = StringRef_from_zstr(*argv);
 
         if (
@@ -44,13 +175,9 @@ static int parse_options(
         ) {
             /* Positional */
             if (has_path) {
-                Writer_write_str(Writer_stderr, progname);
-                Writer_format(
-                    Writer_stderr, ": error: multiple input files\n"
-                );
-                return 1;
+                report_multiple_input_files(diagnostics);
+                return;
             }
-
             options->path = arg;
             has_path = true;
         } else if (arg.size == 2 && arg.data[0] == '-' && arg.data[1] == '-') {
@@ -65,11 +192,8 @@ static int parse_options(
             } else if (StringRef_equal(arg, expect_failure_flag)) {
                 options->expect_failure = true;
             } else {
-                Writer_write_str(Writer_stderr, progname);
-                Writer_format(
-                    Writer_stderr, ": error: unknown flag `%s`\n", arg.data
-                );
-                return 1;
+                report_unknown_flag(diagnostics, arg);
+                return;
             }
         }
 
@@ -78,11 +202,8 @@ static int parse_options(
     }
 
     if (!has_path) {
-        Writer_write_str(Writer_stderr, progname);
-        Writer_format(Writer_stderr, ": error: no input file\n");
+        report_no_input_file(diagnostics);
     }
-
-    return 0;
 }
 
 static void dump_tokens(Writer* writer, TokenList const* tokens) {
@@ -92,71 +213,57 @@ static void dump_tokens(Writer* writer, TokenList const* tokens) {
     }
 }
 
-static int do_check(
-    StringRef progname,
+static void do_check(
+    DiagnosticEngine* diagnostics,
     Options const* options,
     AstContext* ast,
     FunctionItem* item
 ) {
-    int res = 0;
     TypeCheckResult check_result;
-
-    (void)progname;
 
     type_check(&check_result, ast, item);
 
     switch (check_result.kind) {
     case TypeCheckResultKind_Success:
         if (options->expect_failure) {
-            Writer_write_str(Writer_stderr, options->path);
-            Writer_format(
-                Writer_stderr, ": error: check was expected to fail\n"
-            );
-            res = 1;
+            report_check_unexpected_success(diagnostics);
         }
         break;
 
     case TypeCheckResultKind_UndeclaredName:
         if (!options->expect_failure) {
-            write_undeclared_name_error(
-                Writer_stderr, options->path, &check_result.as.undeclared_name
+            report_undeclared_name(
+                diagnostics, options->path, &check_result.as.undeclared_name
             );
-            res = 1;
         }
         break;
 
     case TypeCheckResultKind_ExpectedType:
         if (!options->expect_failure) {
-            write_expected_type_error(
-                Writer_stderr, options->path, &check_result.as.expected_type
+            report_type_mismatch(
+                diagnostics, options->path, &check_result.as.expected_type
             );
-            res = 1;
         }
         break;
     }
-
-    return res;
 }
 
-static int do_parse(
-    StringRef progname,
+static void do_parse(
+    DiagnosticEngine* diagnostics,
     Options const* options,
     AstContext* ast,
     TokenList const* tokens,
     Command command
 ) {
-    int res = 0;
     ParseResult parse_result;
-
-    (void)progname;
 
     parse(&parse_result, ast, tokens);
 
     switch (parse_result.kind) {
     case ParseResultKind_Success:
         if (command == Command_Check) {
-            res = do_check(
-                progname, options, ast, (FunctionItem*)parse_result.u.item
+            do_check(
+                diagnostics, options, ast, (FunctionItem*)parse_result.u.item
             );
         } else {
             if (!options->quiet) {
@@ -164,43 +271,33 @@ static int do_parse(
                     (FunctionItem*)parse_result.u.item, Writer_stdout
                 );
             }
-
             if (options->expect_failure) {
-                Writer_write_str(Writer_stderr, options->path);
-                Writer_format(
-                    Writer_stderr, ": error: parse was expected to fail\n"
-                );
-                res = 1;
+                report_parse_unexpected_success(diagnostics);
             }
         }
         break;
 
     case ParseResultKind_ParseError:
         if (command != Command_Parse || !options->expect_failure) {
-            write_parse_error(
-                Writer_stderr, options->path, &parse_result.u.parse_error
+            report_parse_error(
+                diagnostics, options->path, &parse_result.u.parse_error
             );
-            res = 1;
         }
         break;
 
     case ParseResultKind_YaccError:
-        write_yacc_error(Writer_stderr, parse_result.u.yacc_error);
-        res = 1;
+        report_yacc_error(diagnostics, parse_result.u.yacc_error);
         break;
     }
-
-    return res;
 }
 
-static int do_syntax(
-    StringRef progname,
+static void do_syntax(
+    DiagnosticEngine* diagnostics,
     Options const* options,
     AstContext* ast,
     SystemFile file,
     Command command
 ) {
-    int res = 0;
     LexResult lex_result;
     SystemIoError io_res;
     SourceFile const* source;
@@ -208,14 +305,8 @@ static int do_syntax(
     io_res = AstContext_source_from_file(ast, options->path, file, &source);
 
     if (io_res != SystemIoError_Success) {
-        Writer_write_str(Writer_stderr, progname);
-        Writer_format(
-            Writer_stderr,
-            ": error: cannot read '%s', system error %u\n",
-            options->path.data,
-            io_res
-        );
-        return 1;
+        report_read_error(diagnostics, options->path, io_res);
+        return;
     }
 
     lex_source(&lex_result, ast, source, NULL);
@@ -225,46 +316,43 @@ static int do_syntax(
             if (!options->quiet) {
                 dump_tokens(Writer_stdout, &lex_result.u.tokens);
             }
-
             if (options->expect_failure) {
-                Writer_write_str(Writer_stderr, options->path);
-                Writer_format(
-                    Writer_stderr, ": error: tokenize was expected to fail\n"
-                );
-                res = 1;
+                report_tokenize_unexpected_success(diagnostics);
             }
         } else {
-            res = do_parse(
-                progname, options, ast, &lex_result.u.tokens, command
+            do_parse(
+                diagnostics, options, ast, &lex_result.u.tokens, command
             );
         }
 
         xfree(lex_result.u.tokens.data);
     } else {
         if (command != Command_Tokenize || !options->expect_failure) {
-            write_lex_error(Writer_stderr, options->path, &lex_result.u.error);
-            res = 1;
+            write_lex_error(diagnostics, options->path, &lex_result.u.error);
         }
     }
-
-    return res;
 }
 
-static int do_command(
-    StringRef progname, int argc, char const* const* argv, Command command
+static void do_command(
+    DiagnosticEngine* diagnostics,
+    int argc,
+    char const* const* argv,
+    Command command
 ) {
-    int res;
     Options options;
     AstContext* ast;
 
-    res = parse_options(&options, progname, argc, argv);
-    if (res != 0) return res;
+    parse_options(&options, diagnostics, argc, argv);
+
+    if (DiagnosticEngine_has_errors(diagnostics)) {
+        return;
+    }
 
     ast = AstContext_new();
 
     if (StringRef_equal_zstr(options.path, "-")) {
         options.path = StringRef_from_zstr("<stdin>");
-        res = do_syntax(progname, &options, ast, SystemFile_stdin, command);
+        do_syntax(diagnostics, &options, ast, SystemFile_stdin, command);
     } else {
         SystemFile file;
         SystemIoError io_res;
@@ -272,33 +360,30 @@ static int do_command(
         io_res = SystemFile_open_read(&file, (char const*)options.path.data);
 
         if (io_res == SystemIoError_Success) {
-            res = do_syntax(progname, &options, ast, file, command);
+            do_syntax(diagnostics, &options, ast, file, command);
             SystemFile_close(file);
         } else {
-            Writer_write_str(Writer_stderr, progname);
-            Writer_format(
-                Writer_stderr,
-                ": error: cannot open '%s', system error %u\n",
-                options.path.data,
-                io_res
-            );
-            res = 1;
+            report_open_error(diagnostics, options.path, io_res);
         }
     }
 
     AstContext_delete(ast);
-
-    return res;
 }
 
-int tokenize_command(StringRef progname, int argc, char const* const* argv) {
-    return do_command(progname, argc, argv, Command_Tokenize);
+void tokenize_command(
+    DiagnosticEngine* diagnostics, int argc, char const* const* argv
+) {
+    do_command(diagnostics, argc, argv, Command_Tokenize);
 }
 
-int parse_command(StringRef progname, int argc, char const* const* argv) {
-    return do_command(progname, argc, argv, Command_Parse);
+void parse_command(
+    DiagnosticEngine* diagnostics, int argc, char const* const* argv
+) {
+    do_command(diagnostics, argc, argv, Command_Parse);
 }
 
-int check_command(StringRef progname, int argc, char const* const* argv) {
-    return do_command(progname, argc, argv, Command_Check);
+void check_command(
+    DiagnosticEngine* diagnostics, int argc, char const* const* argv
+) {
+    do_command(diagnostics, argc, argv, Command_Check);
 }
