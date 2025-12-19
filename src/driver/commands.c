@@ -220,6 +220,15 @@ static void do_check(
     FunctionItem* item
 ) {
     TypeCheckResult check_result;
+    DiagnosticLevel error_level = DiagnosticLevel_Error;
+
+    if (options->expect_failure) {
+        if (options->quiet) {
+            error_level = DiagnosticLevel_Ignore;
+        } else {
+            error_level = DiagnosticLevel_Info;
+        }
+    }
 
     type_check(&check_result, ast, item);
 
@@ -231,19 +240,21 @@ static void do_check(
         break;
 
     case TypeCheckResultKind_UndeclaredName:
-        if (!options->expect_failure) {
-            report_undeclared_name(
-                diagnostics, options->path, &check_result.as.undeclared_name
-            );
-        }
+        report_undeclared_name(
+            diagnostics,
+            options->path,
+            &check_result.as.undeclared_name,
+            error_level
+        );
         break;
 
     case TypeCheckResultKind_ExpectedType:
-        if (!options->expect_failure) {
-            report_type_mismatch(
-                diagnostics, options->path, &check_result.as.expected_type
-            );
-        }
+        report_type_mismatch(
+            diagnostics,
+            options->path,
+            &check_result.as.expected_type,
+            error_level
+        );
         break;
     }
 }
@@ -256,6 +267,15 @@ static void do_parse(
     Command command
 ) {
     ParseResult parse_result;
+    DiagnosticLevel error_level = DiagnosticLevel_Error;
+
+    if (command == Command_Parse && options->expect_failure) {
+        if (options->quiet) {
+            error_level = DiagnosticLevel_Ignore;
+        } else {
+            error_level = DiagnosticLevel_Info;
+        }
+    }
 
     parse(&parse_result, ast, tokens);
 
@@ -266,7 +286,7 @@ static void do_parse(
                 diagnostics, options, ast, (FunctionItem*)parse_result.u.item
             );
         } else {
-            if (!options->quiet) {
+            if (!options->quiet && !options->expect_failure) {
                 FunctionItem_dump(
                     (FunctionItem*)parse_result.u.item, Writer_stdout
                 );
@@ -278,11 +298,12 @@ static void do_parse(
         break;
 
     case ParseResultKind_ParseError:
-        if (command != Command_Parse || !options->expect_failure) {
-            report_parse_error(
-                diagnostics, options->path, &parse_result.u.parse_error
-            );
-        }
+        report_parse_error(
+            diagnostics,
+            options->path,
+            &parse_result.u.parse_error,
+            error_level
+        );
         break;
 
     case ParseResultKind_YaccError:
@@ -301,6 +322,15 @@ static void do_syntax(
     LexResult lex_result;
     SystemIoError io_res;
     SourceFile const* source;
+    DiagnosticLevel error_level = DiagnosticLevel_Error;
+
+    if (command == Command_Tokenize && options->expect_failure) {
+        if (options->quiet) {
+            error_level = DiagnosticLevel_Ignore;
+        } else {
+            error_level = DiagnosticLevel_Info;
+        }
+    }
 
     io_res = AstContext_source_from_file(ast, options->path, file, &source);
 
@@ -313,7 +343,7 @@ static void do_syntax(
 
     if (lex_result.is_tokens) {
         if (command == Command_Tokenize) {
-            if (!options->quiet) {
+            if (!options->quiet && !options->expect_failure) {
                 dump_tokens(Writer_stdout, &lex_result.u.tokens);
             }
             if (options->expect_failure) {
@@ -327,9 +357,12 @@ static void do_syntax(
 
         xfree(lex_result.u.tokens.data);
     } else {
-        if (command != Command_Tokenize || !options->expect_failure) {
-            write_lex_error(diagnostics, options->path, &lex_result.u.error);
-        }
+        report_lex_error(
+            diagnostics,
+            options->path,
+            &lex_result.u.error,
+            error_level
+        );
     }
 }
 

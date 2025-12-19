@@ -34,8 +34,11 @@ static void write_syntax_category(Writer* writer, SyntaxCategory category) {
     }
 }
 
-void write_lex_error(
-    DiagnosticEngine* diagnostics, StringRef path, LexError const* error
+void report_lex_error(
+    DiagnosticEngine* diagnostics,
+    StringRef path,
+    LexError const* error,
+    DiagnosticLevel level
 ) {
     DiagnosticBuilder* diag;
     Writer* writer;
@@ -43,7 +46,7 @@ void write_lex_error(
     diag = DiagnosticEngine_start_diagnostic(diagnostics);
     writer = DiagnosticBuilder_get_writer(diag);
 
-    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_level(diag, level);
     DiagnosticBuilder_set_category(diag, DiagnosticCategory_Tokenize);
     DiagnosticBuilder_set_source(diag, path);
 
@@ -79,7 +82,10 @@ void write_lex_error(
 }
 
 void report_parse_error(
-    DiagnosticEngine* diagnostics, StringRef path, ParseError const* error
+    DiagnosticEngine* diagnostics,
+    StringRef path,
+    ParseError const* error,
+    DiagnosticLevel level
 ) {
     DiagnosticBuilder* diag;
     Writer* writer;
@@ -87,7 +93,7 @@ void report_parse_error(
     diag = DiagnosticEngine_start_diagnostic(diagnostics);
     writer = DiagnosticBuilder_get_writer(diag);
 
-    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_level(diag, level);
     DiagnosticBuilder_set_category(diag, DiagnosticCategory_Parse);
     DiagnosticBuilder_set_source(diag, path);
 
@@ -116,7 +122,10 @@ void report_yacc_error(DiagnosticEngine* diagnostics, ByteStringRef message) {
 }
 
 void report_undeclared_name(
-    DiagnosticEngine* diagnostics, StringRef path, UndeclaredName const* error
+    DiagnosticEngine* diagnostics,
+    StringRef path,
+    UndeclaredName const* error,
+    DiagnosticLevel level
 ) {
     DiagnosticBuilder* diag;
     Writer* writer;
@@ -124,7 +133,7 @@ void report_undeclared_name(
     diag = DiagnosticEngine_start_diagnostic(diagnostics);
     writer = DiagnosticBuilder_get_writer(diag);
 
-    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_level(diag, level);
     DiagnosticBuilder_set_category(diag, DiagnosticCategory_TypeCheck);
     DiagnosticBuilder_set_source(diag, path);
 
@@ -136,7 +145,10 @@ void report_undeclared_name(
 }
 
 void report_type_mismatch(
-    DiagnosticEngine* diagnostics, StringRef path, ExpectedType const* error
+    DiagnosticEngine* diagnostics,
+    StringRef path,
+    ExpectedType const* error,
+    DiagnosticLevel level
 ) {
     DiagnosticBuilder* diag;
     Writer* writer;
@@ -144,7 +156,7 @@ void report_type_mismatch(
     diag = DiagnosticEngine_start_diagnostic(diagnostics);
     writer = DiagnosticBuilder_get_writer(diag);
 
-    DiagnosticBuilder_set_level(diag, DiagnosticLevel_Error);
+    DiagnosticBuilder_set_level(diag, level);
     DiagnosticBuilder_set_category(diag, DiagnosticCategory_TypeCheck);
     DiagnosticBuilder_set_source(diag, path);
 
