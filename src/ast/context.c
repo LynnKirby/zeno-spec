@@ -23,8 +23,8 @@ struct AstContext {
     size_t files_capacity;
 
     /* Cached types */
-    SimpleType simple_types[SimpleTypeKind_COUNT];
-    SimpleTypeExpr simple_type_exprs[SimpleTypeKind_COUNT];
+    SimpleType* simple_types[SimpleTypeKind_COUNT];
+    SimpleTypeExpr* simple_type_exprs[SimpleTypeKind_COUNT];
 };
 
 AstContext* AstContext_new(void) {
@@ -42,11 +42,8 @@ AstContext* AstContext_new(void) {
     {
         int i;
         for (i = 0; i < SimpleTypeKind_COUNT; i += 1) {
-            ast->simple_types[i].base.kind = TypeKind_Simple;
-            ast->simple_types[i].kind = i;
-
-            ast->simple_type_exprs[i].base.kind = ExprKind_SimpleType;
-            ast->simple_type_exprs[i].kind = i;
+            ast->simple_types[i] = SimpleType_new(ast, i);
+            ast->simple_type_exprs[i] = SimpleTypeExpr_new(ast, i);
         }
     }
 
@@ -153,7 +150,7 @@ SourceFile const* AstContext_source_from_bytes(
 SimpleType* AstContext_simple_type(AstContext* ast, SimpleTypeKind kind) {
     assert(kind >= 0);
     assert(kind < SimpleTypeKind_COUNT);
-    return &ast->simple_types[kind];
+    return ast->simple_types[kind];
 }
 
 SimpleTypeExpr* AstContext_simple_type_expr(
@@ -161,5 +158,5 @@ SimpleTypeExpr* AstContext_simple_type_expr(
 ) {
     assert(kind >= 0);
     assert(kind < SimpleTypeKind_COUNT);
-    return &ast->simple_type_exprs[kind];
+    return ast->simple_type_exprs[kind];
 }

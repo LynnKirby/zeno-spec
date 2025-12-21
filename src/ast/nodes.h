@@ -54,6 +54,10 @@ typedef enum SimpleTypeKind {
     SimpleTypeKind_COUNT ATTR_UNUSED
 } SimpleTypeKind;
 
+typedef struct Item Item;
+typedef struct Expr Expr;
+typedef struct Type Type;
+
 #define X(name) typedef struct name##Item name##Item;
 ITEM_KIND_LIST(X)
 #undef X
@@ -66,17 +70,22 @@ EXPR_KIND_LIST(X)
 TYPE_KIND_LIST(X)
 #undef X
 
-typedef struct Item {
+struct Item {
     ItemKind kind;
-} Item;
+};
 
-typedef struct Expr {
+struct Expr {
     ExprKind kind;
-} Expr;
 
-typedef struct Type {
+    /* null before type checking */
+    Type* type;
+    Expr* const_eval;
+    Type* as_type;
+};
+
+struct Type {
     TypeKind kind;
-} Type;
+};
 
 /*
  * Items
@@ -131,9 +140,6 @@ SimpleTypeExpr* SimpleTypeExpr_new(struct AstContext* ast, SimpleTypeKind kind);
 struct FunctionTypeExpr {
     Expr base;
     Expr* return_type;
-
-    FunctionTypeExpr* const_eval; /* nullable */
-    FunctionType* as_type; /* nullable */
 };
 
 FunctionTypeExpr* FunctionTypeExpr_new(

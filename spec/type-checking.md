@@ -61,12 +61,17 @@ TypeCtx |- const_eval(f:FunctionTypeExpr) = f'
 
 ```
 # TypeItem-Function
-TypeCtx |- const_eval(f.type) = f_type'
-as_type(f_type'.return) = return_type
-TypeCtx' = TypeCtx[return_type |-> return_type]
-TypeCtx |- f.body : body_type
+TypeCtx |- type(f.type) = _ : Type
+TypeCtx |- const_eval(f.type) = f_type
+TypeCtx' = TypeCtx[return_type |-> as_type(f_type.return)]
+TypeCtx' |- f.body : body_type
+f' = FunctionItem {
+    name = f.name
+    type = f_type
+    body = f.body
+}
 ----------------------------------------------------
-TypeCtx |- f:FunctionItem ok
+TypeCtx |- type(f:FunctionItem) = f'
 ```
 
 ## Expression typing
@@ -87,8 +92,12 @@ TypeCtx(x) = ConstDecl(e, type)
 -------------------------------
 TypeCtx |- NameExpr(x) : type
 
-# TypeExpr-Type
-is_type_expr(e)
------------------------
+# TypeExpr-FunctionType
+TypeCtx |- f.return_type : TypeType
+----------------------------------------
+TypeCtx |- f:FunctionTypeExpr : TypeType
+
+# TypeExpr-SimpleType
+e in {NeverExpr, Int32Expr, VoidExpr}
+-------------------------------------
 TypeCtx |- e : TypeType
-```

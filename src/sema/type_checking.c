@@ -10,6 +10,8 @@ typedef struct TypeContext {
     AstContext* ast;
     TypeCheckResult* result;
     jmp_buf exit_jmp_buf;
+    Type* type_type;
+    Type* never_type;
 } TypeContext;
 
 static void exit_type_checking(TypeContext* context) {
@@ -62,7 +64,9 @@ static void add_prelude(TypeContext* context) {
  * Type lifting - as_type
  */
 
-static Type* as_type(TypeContext* context, Expr* expr) {
+static Type* as_type(TypeContext* context, Expr* expr);
+
+static Type* as_type_impl(TypeContext* context, Expr* expr) {
     switch (expr->kind) {
     case ExprKind_SimpleType:
         return (Type*)AstContext_simple_type(
@@ -71,22 +75,16 @@ static Type* as_type(TypeContext* context, Expr* expr) {
 
     case ExprKind_FunctionType: {
         FunctionTypeExpr* func_type_expr;
+        Type* return_type;
+
         func_type_expr = (FunctionTypeExpr*)expr;
 
-        if (func_type_expr->as_type == NULL) {
-            Type* return_type;
-
-            return_type = as_type(context, func_type_expr->return_type);
-            if (return_type == NULL) {
-                return NULL;
-            }
-
-            func_type_expr->as_type = FunctionType_new(
-                context->ast, return_type
-            );
+        return_type = as_type(context, func_type_expr->return_type);
+        if (return_type == NULL) {
+            return NULL;
         }
 
-        return (Type*)func_type_expr->as_type;
+        return (Type*)FunctionType_new(context->ast, return_type);
     }
 
     default:
@@ -94,11 +92,20 @@ static Type* as_type(TypeContext* context, Expr* expr) {
     }
 }
 
+static Type* as_type(TypeContext* context, Expr* expr) {
+    if (expr->as_type == NULL) {
+        expr->as_type = as_type_impl(context, expr);
+    }
+    return expr->as_type;
+}
+
 /*
  * Constant evaluation
  */
 
-static Expr* const_eval(TypeContext* context, Expr* expr) {
+static Expr* const_eval(TypeContext* context, Expr* expr);
+
+static Expr* const_eval_impl(TypeContext* context, Expr* expr) {
     switch (expr->kind) {
     default:
         return NULL;
@@ -132,26 +139,25 @@ static Expr* const_eval(TypeContext* context, Expr* expr) {
     /* ConstEval-FunctionType */
     case ExprKind_FunctionType: {
         FunctionTypeExpr* func_type_expr;
+        Expr* return_type;
 
         func_type_expr = (FunctionTypeExpr*)expr;
 
-        if (func_type_expr->const_eval == NULL) {
-            Expr* return_type;
-
-            return_type = const_eval(context, func_type_expr->return_type);
-            if (return_type == NULL) {
-                return NULL;
-            }
-
-            func_type_expr->const_eval = FunctionTypeExpr_new(
-                context->ast,
-                return_type
-            );
+        return_type = const_eval(context, func_type_expr->return_type);
+        if (return_type == NULL) {
+            return NULL;
         }
 
-        return (Expr*)func_type_expr->const_eval;
+        return (Expr*)FunctionTypeExpr_new(context->ast, return_type);
     }
     }
+}
+
+static Expr* const_eval(TypeContext* context, Expr* expr) {
+    if (expr->const_eval == NULL) {
+        expr->const_eval = const_eval_impl(context, expr);
+    }
+    return expr->const_eval;
 }
 
 /*
@@ -160,7 +166,9 @@ static Expr* const_eval(TypeContext* context, Expr* expr) {
 
 static void type_function_item(TypeContext* context, FunctionItem* item);
 
-static Type* type_expr(TypeContext* context, Expr* expr) {
+static Type* type_expr(TypeContext* context, Expr* expr);
+
+static Type* type_expr_impl(TypeContext* context, Expr* expr) {
     switch (expr->kind) {
     /* TypeExpr-IntLiteral */
     case ExprKind_IntLiteral:
@@ -170,21 +178,20 @@ static Type* type_expr(TypeContext* context, Expr* expr) {
 
     /* TypeExpr-Return */
     case ExprKind_Return: {
-        Type* return_value_type;
+        ReturnExpr* return_expr;
 
         assert(context->return_type != NULL); /* TODO: report error */
+        return_expr = (ReturnExpr*)expr;
 
-        return_value_type = type_expr(context, ((ReturnExpr*)expr)->value);
+        type_expr(context, return_expr->value);
 
-        if (!Type_equal(context->return_type, return_value_type)) {
+        if (!Type_equal(context->return_type, return_expr->value->type)) {
             report_expected_type(
-                context, return_value_type, context->return_type
+                context, return_expr->value->type, context->return_type
             );
         }
 
-        return (Type*)AstContext_simple_type(
-            context->ast, SimpleTypeKind_Never
-        );
+        return context->never_type;
     }
 
     case ExprKind_Name: {
@@ -210,10 +217,17 @@ static Type* type_expr(TypeContext* context, Expr* expr) {
     /* TypeExpr-Type */
     case ExprKind_SimpleType:
     case ExprKind_FunctionType:
-        return (Type*)AstContext_simple_type(context->ast, SimpleTypeKind_Type);
+        return context->type_type;
     }
 
     assert(0 && "unreachable");
+}
+
+static Type* type_expr(TypeContext* context, Expr* expr) {
+    if (expr->type == NULL) {
+        expr->type = type_expr_impl(context, expr);
+    }
+    return expr->type;
 }
 
 static void type_function_item(TypeContext* context, FunctionItem* item) {
@@ -222,7 +236,14 @@ static void type_function_item(TypeContext* context, FunctionItem* item) {
     Type* old_return_type;
 
     func_type_expr = const_eval(context, (Expr*)item->type);
+    type_expr(context, func_type_expr);
+
+    if (!Type_equal(func_type_expr->type, context->type_type)) {
+        report_expected_type(context, func_type_expr->type, context->type_type);
+    }
+
     func_type = (FunctionType*)as_type(context, func_type_expr);
+    assert(func_type->base.kind == TypeKind_Function);
 
     DeclMap_push_scope(&context->decls);
     old_return_type = context->return_type;
@@ -241,6 +262,8 @@ void type_check(TypeCheckResult* result, AstContext* ast, FunctionItem* item) {
     context.return_type = NULL;
     context.ast = ast;
     context.result = result;
+    context.type_type = (Type*)AstContext_simple_type(ast, SimpleTypeKind_Type);
+    context.never_type = (Type*)AstContext_simple_type(ast, SimpleTypeKind_Never);
 
     result->kind = TypeCheckResultKind_Success;
 

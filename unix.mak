@@ -81,10 +81,12 @@ clean:
 	$(Q)rm -f src/parsing/parse.output src/parsing/parse.tab.c
 
 -include src/ast/*.d
+-include src/basic/*.d
 -include src/driver/*.d
 -include src/lang/*.d
--include src/support/*.d
 -include src/parsing/*.d
+-include src/sema/*.d
+-include src/support/*.d
 
 #
 # Compile targets

@@ -44,10 +44,3 @@ is_value(e.return)
 ----------------------------
 is_value(f:FunctionTypeExpr)
 ```
-
-```
-is_type_expr(NeverExpr)
-is_type_expr(VoidExpr)
-is_type_expr(Int32Expr)
-is_type_expr(FunctionTypeExpr)
-```

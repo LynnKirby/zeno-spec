@@ -237,6 +237,9 @@ static void do_check(
         if (options->expect_failure) {
             report_check_unexpected_success(diagnostics);
         }
+        if (!options->quiet) {
+            FunctionItem_dump(item, Writer_stdout);
+        }
         break;
 
     case TypeCheckResultKind_UndeclaredName:

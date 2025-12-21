@@ -29,6 +29,9 @@ IntLiteralExpr* IntLiteralExpr_new(AstContext* ast, BigInt value) {
     IntLiteralExpr* expr;
     expr = AstContext_allocate(ast, sizeof(IntLiteralExpr));
     expr->base.kind = ExprKind_IntLiteral;
+    expr->base.type = NULL;
+    expr->base.const_eval = NULL;
+    expr->base.as_type = NULL;
     expr->value = value;
     return expr;
 }
@@ -37,6 +40,9 @@ ReturnExpr* ReturnExpr_new(AstContext* ast, Expr* value) {
     ReturnExpr* expr;
     expr = AstContext_allocate(ast, sizeof(ReturnExpr));
     expr->base.kind = ExprKind_Return;
+    expr->base.type = NULL;
+    expr->base.const_eval = NULL;
+    expr->base.as_type = NULL;
     expr->value = value;
     return expr;
 }
@@ -45,6 +51,9 @@ NameExpr* NameExpr_new(AstContext* ast, AstString name) {
     NameExpr* expr;
     expr = AstContext_allocate(ast, sizeof(NameExpr));
     expr->base.kind = ExprKind_Name;
+    expr->base.type = NULL;
+    expr->base.const_eval = NULL;
+    expr->base.as_type = NULL;
     expr->name = name;
     return expr;
 }
@@ -53,6 +62,9 @@ SimpleTypeExpr* SimpleTypeExpr_new(struct AstContext* ast, SimpleTypeKind kind) 
     SimpleTypeExpr* expr;
     expr = AstContext_allocate(ast, sizeof(SimpleTypeExpr));
     expr->base.kind = ExprKind_SimpleType;
+    expr->base.type = NULL;
+    expr->base.const_eval = NULL;
+    expr->base.as_type = NULL;
     expr->kind = kind;
     return expr;
 }
@@ -63,9 +75,10 @@ FunctionTypeExpr* FunctionTypeExpr_new(
     FunctionTypeExpr* expr;
     expr = AstContext_allocate(ast, sizeof(FunctionTypeExpr));
     expr->base.kind = ExprKind_FunctionType;
+    expr->base.type = NULL;
+    expr->base.const_eval = NULL;
+    expr->base.as_type = NULL;
     expr->return_type = return_type;
-    expr->const_eval = NULL;
-    expr->as_type = NULL;
     return expr;
 }
 

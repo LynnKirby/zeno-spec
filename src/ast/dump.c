@@ -66,6 +66,10 @@ static void Item_dump_internal(Item const* item, Writer* writer, int indent) {
 }
 
 static void Expr_dump_internal(Expr const* expr, Writer* writer, int indent) {
+    if (expr->const_eval != NULL) {
+        expr = expr->const_eval;
+    }
+
     switch (expr->kind) {
     #define X(name)                                                            \
         case ExprKind_##name:                                                  \
@@ -110,7 +114,7 @@ static void FunctionItem_dump_internal(
     Writer_format(writer, "\",\n");
 
     write_indent(writer, indent);
-    Writer_format(writer, "type = ", 0);
+    Writer_format(writer, "type = ");
     FunctionTypeExpr_dump_internal(item->type, writer, indent);
     Writer_format(writer, ",\n");
 
@@ -129,11 +133,16 @@ static void FunctionItem_dump_internal(
  */
 
 static void IntLiteralExpr_dump_internal(
-    IntLiteralExpr const* item, Writer* writer, int indent
+    IntLiteralExpr const* expr, Writer* writer, int indent
 ) {
-    (void)indent; /* unused */
     Writer_format(writer, "IntLiteralExpr(value = ");
-    BigInt_write(writer, item->value, 10);
+    BigInt_write(writer, expr->value, 10);
+
+    if (expr->base.type != NULL) {
+        Writer_format(writer, ", type = ");
+        Type_dump_internal(expr->base.type, writer, indent);
+    }
+
     Writer_format(writer, ")");
 }
 
@@ -148,6 +157,13 @@ static void ReturnExpr_dump_internal(
     Expr_dump_internal(item->value, writer, indent);
     Writer_format(writer, ",\n");
 
+    if (item->base.type != NULL) {
+        write_indent(writer, indent);
+        Writer_format(writer, "type = ");
+        Type_dump_internal(item->base.type, writer, indent);
+        Writer_format(writer, ",\n");
+    }
+
     indent -= 1;
     write_indent(writer, indent);
     Writer_format(writer, ")");
@@ -159,7 +175,14 @@ static void NameExpr_dump_internal(
     (void)indent; /* unused */
     Writer_format(writer, "NameExpr(value = \"");
     Writer_write_str(writer, expr->name.value);
-    Writer_format(writer, "\")");
+    Writer_format(writer, "\"");
+
+    if (expr->base.type != NULL) {
+        Writer_format(writer, ", type = ");
+        Type_dump_internal(expr->base.type, writer, indent);
+    }
+
+    Writer_format(writer, ")");
 }
 
 static void SimpleTypeExpr_dump_internal(
@@ -186,6 +209,13 @@ static void FunctionTypeExpr_dump_internal(
     Writer_format(writer, "return_type = ");
     Expr_dump_internal(expr->return_type, writer, indent);
     Writer_format(writer, ",\n");
+
+    if (expr->base.type != NULL) {
+        write_indent(writer, indent);
+        Writer_format(writer, "type = ");
+        Type_dump_internal(expr->base.type, writer, indent);
+        Writer_format(writer, ",\n");
+    }
 
     indent -= 1;
     write_indent(writer, indent);
