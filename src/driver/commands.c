@@ -1,17 +1,19 @@
 #include "src/driver/commands.h"
+#include "src/ast/dump.h"
+#include "src/driver/diagnostics.h"
+#include "src/eval/compile.h"
 #include "src/parsing/lex.h"
 #include "src/parsing/parse.h"
-#include "src/support/malloc.h"
-#include "src/driver/diagnostics.h"
-#include "src/ast/dump.h"
 #include "src/sema/type_checking.h"
+#include "src/support/malloc.h"
 
 #include <assert.h>
 
 typedef enum Command {
     Command_Tokenize,
     Command_Parse,
-    Command_Check
+    Command_Check,
+    Command_Compile
 } Command;
 
 typedef struct Options {
@@ -213,11 +215,27 @@ static void dump_tokens(Writer* writer, TokenList const* tokens) {
     }
 }
 
+static void do_compile(
+    DiagnosticEngine* diagnostics,
+    Options const* options,
+    AstContext* ast,
+    FunctionItem* item,
+    Command command
+) {
+    BytecodeFunction* bytecode_function;
+
+    bytecode_function = compile_function(item);
+    BytecodeFunction_dump(bytecode_function, Writer_stdout);
+
+    BytecodeFunction_delete(bytecode_function);
+}
+
 static void do_check(
     DiagnosticEngine* diagnostics,
     Options const* options,
     AstContext* ast,
-    FunctionItem* item
+    FunctionItem* item,
+    Command command
 ) {
     TypeCheckResult check_result;
     DiagnosticLevel error_level = DiagnosticLevel_Error;
@@ -234,11 +252,15 @@ static void do_check(
 
     switch (check_result.kind) {
     case TypeCheckResultKind_Success:
-        if (options->expect_failure) {
-            report_check_unexpected_success(diagnostics);
-        }
-        if (!options->quiet) {
-            FunctionItem_dump(item, Writer_stdout);
+        if (command == Command_Check) {
+            if (!options->quiet && !options->expect_failure) {
+                FunctionItem_dump(item, Writer_stdout);
+            }
+            if (options->expect_failure) {
+                report_check_unexpected_success(diagnostics);
+            }
+        } else {
+            do_compile(diagnostics, options, ast, item, command);
         }
         break;
 
@@ -284,11 +306,7 @@ static void do_parse(
 
     switch (parse_result.kind) {
     case ParseResultKind_Success:
-        if (command == Command_Check) {
-            do_check(
-                diagnostics, options, ast, (FunctionItem*)parse_result.u.item
-            );
-        } else {
+        if (command == Command_Parse) {
             if (!options->quiet && !options->expect_failure) {
                 FunctionItem_dump(
                     (FunctionItem*)parse_result.u.item, Writer_stdout
@@ -297,6 +315,14 @@ static void do_parse(
             if (options->expect_failure) {
                 report_parse_unexpected_success(diagnostics);
             }
+        } else {
+            do_check(
+                diagnostics,
+                options,
+                ast,
+                (FunctionItem*)parse_result.u.item,
+                command
+            );
         }
         break;
 
@@ -422,4 +448,10 @@ void check_command(
     DiagnosticEngine* diagnostics, int argc, char const* const* argv
 ) {
     do_command(diagnostics, argc, argv, Command_Check);
+}
+
+void compile_command(
+    DiagnosticEngine* diagnostics, int argc, char const* const* argv
+) {
+    do_command(diagnostics, argc, argv, Command_Compile);
 }

@@ -11,7 +11,8 @@
 typedef enum Command {
     Command_Tokenize,
     Command_Parse,
-    Command_Check
+    Command_Check,
+    Command_Compile
 } Command;
 
 static StringRef get_program_name(int argc, char const* const* argv) {
@@ -47,6 +48,9 @@ static int get_command(
             return 0;
         } else if (StringRef_equal_zstr(arg, "check")) {
             *command = Command_Check;
+            return 0;
+        }  else if (StringRef_equal_zstr(arg, "compile")) {
+            *command = Command_Compile;
             return 0;
         } else {
             Writer_write_str(Writer_stderr, progname);
@@ -90,6 +94,10 @@ int main(int argc, char const* const* argv) {
 
         case Command_Check:
             check_command(diagnostics, argc - 2, argv + 2);
+            break;
+
+        case Command_Compile:
+            compile_command(diagnostics, argc - 2, argv + 2);
             break;
         }
 

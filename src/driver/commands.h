@@ -13,5 +13,8 @@ void parse_command(
 void check_command(
     DiagnosticEngine* diagnostics, int argc, char const* const* argv
 );
+void compile_command(
+    DiagnosticEngine* diagnostics, int argc, char const* const* argv
+);
 
 #endif

@@ -39,6 +39,8 @@ lib_objects = \
 	src/driver/commands$(O) \
 	src/driver/diagnostics$(O) \
 	src/driver/terminal_diagnostic_consumer$(O) \
+	src/eval/bytecode$(O) \
+	src/eval/compile$(O) \
 	src/parsing/lex$(O) \
 	src/parsing/parse.tab$(O) \
 	src/sema/decl_map$(O) \
@@ -83,7 +85,7 @@ clean:
 -include src/ast/*.d
 -include src/basic/*.d
 -include src/driver/*.d
--include src/lang/*.d
+-include src/eval/*.d
 -include src/parsing/*.d
 -include src/sema/*.d
 -include src/support/*.d

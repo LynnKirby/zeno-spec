@@ -15,6 +15,7 @@ typedef struct BigInt {
 
 BigInt BigInt_from_int(intmax_t value);
 BigInt BigInt_from_uint(uintmax_t value);
+uint32_t BigInt_as_uint32(BigInt bigint);
 
 /** Loosely parse sequence of `base` digits. Ignores non-base characters. */
 BigInt BigInt_parse(ByteStringRef string, int base);

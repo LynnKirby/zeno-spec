@@ -35,6 +35,10 @@ void BigInt_destroy(BigInt* bigint) {
     /* xfree((void*)bigint->opaque); */
 }
 
+uint32_t BigInt_as_uint32(BigInt bigint) {
+    return (uint32_t)bigint.opaque >> 1;
+}
+
 BigInt BigInt_parse(ByteStringRef string, int base) {
     uintmax_t uvalue;
     char const* cursor;
